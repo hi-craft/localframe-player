@@ -4,16 +4,19 @@
 
 本文件记录实际检查，不将源码审阅或脚本存在视为通过原生编译。
 
-- Windows 静态检查：2026-10-28 已通过。16 个 Swift 文件和 2 个 Objective-C 实现文件通过 Tree-sitter 语法解析（零语法错误）；JSON / YAML 解析、2 个 plist / privacy manifest 和 Python / Bash 脚本语法检查通过。语法解析不包含 Swift 类型检查、链接或 iOS API 可用性检查。
-- Core Swift 测试：7 项通过，零失败。
-- iOS / iPadOS 原生编译：Xcode 26.3、iOS SDK 26.2 的 ARM64 Release 设备构建和模拟器构建均成功。最终 IPA 已检查 ZIP 完整性、ARM64 可执行文件、iPhone / iPad 设备类型及动态播放框架嵌入；不含测试视频。
-- 原生播放测试：4 项通过，零失败；检查 MP4 / MKV 首个解码帧、取消/远程输入拒绝，以及实际播放的时间、时长和可定位状态。
-- iPhone / iPad 模拟器启动：分别安装并独立启动成功；已核对两张首屏截图，未见文字截断或控件重叠。
+- Windows 静态检查：2026-10-29 已通过。16 个 Swift 文件和 2 个 Objective-C 实现文件通过 Tree-sitter 语法解析（零语法错误）；JSON / YAML 和应用 plist 解析通过。语法解析不包含 Swift 类型检查、链接或 iOS API 可用性检查。
+- Vela Player 0.1.1（build 2）设备构建：Xcode 26.3、iOS SDK 26.2 的 ARM64 Release 构建成功。已检查 ZIP 完整性、ARM64 可执行文件、iPhone / iPad 设备类型及动态播放框架嵌入；不含测试视频。
+- 签名名称：包内 `CFBundleDisplayName` 和 `CFBundleName` 均为 ASCII 名称 `Vela Player`，修正此前中文 appIdName 被拒绝的问题。
+- 本次测试、模拟器构建和启动：按用户要求使用 `build_only` 跳过，以尽快提供安装包。
 - iPhone 15 Pro Max、iPad Air M1 真机：待用户设备验证。
 
-验证提交：`4836c32a7c01ddfb5ecaa071d1f570224be1f2a9`。[完整成功运行](https://github.com/hi-craft/localframe-player/actions/runs/40723131697) 于 2026-10-28 16:32 UTC 完成，即香港时间 2026-10-29 00:32。使用 `macos-15-intel` 构建机，产物仍为 ARM64 iPhone / iPad 应用。私有仓库为 [hi-craft/localframe-player](https://github.com/hi-craft/localframe-player)。
+当前构建提交：`9b853b118a9a9ef9d6d2df2a4b237668844d6da5`。[设备构建成功记录](https://github.com/hi-craft/localframe-player/actions/runs/40733292760) 使用 `macos-15-intel` 构建机，产物为 ARM64 iPhone / iPad 应用。私有仓库为 [hi-craft/localframe-player](https://github.com/hi-craft/localframe-player)。
 
-最终无签名 IPA 大小为 50,937,379 字节，SHA-256：`9e830c24d5c4d2a84b57908ee88c0edf7cef66cf7919bf9af2d0ee89fe826b70`。需要用户自己的签名后才能安装。
+`VelaPlayer-0.1.1.ipa` 为无签名包，大小为 50,937,392 字节，SHA-256：`d8c9d9e915f9e4aba9fb5a1543792cb390ad1da83fcbb53c22bc09b7f45e45b4`。需要用户自己的签名后才能安装。
+
+## 改名前的完整验证基线
+
+提交 `4836c32a7c01ddfb5ecaa071d1f570224be1f2a9` 的 [完整成功运行](https://github.com/hi-craft/localframe-player/actions/runs/40723131697) 于香港时间 2026-10-29 00:32 完成：7 项 Core 测试和 4 项原生播放测试通过，零失败；设备与模拟器构建均成功；iPhone / iPad 模拟器独立启动成功，首屏截图已检查。播放测试覆盖 MP4 / MKV 首帧、取消/远程输入拒绝，以及实际播放的时间、时长和可定位状态。该基线不代表新版重新执行了模拟器验证。
 
 ## 已观察到的限制
 

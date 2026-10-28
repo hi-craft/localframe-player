@@ -19,14 +19,16 @@
 
 ## 当前验证状态
 
-2026-10-29（香港时间）已通过 [GitHub Actions 原生构建与测试](https://github.com/hi-craft/localframe-player/actions/runs/40723131697)：7 项 Core 测试、4 项原生播放/首帧测试、ARM64 设备 IPA 构建、模拟器构建，以及 iPhone / iPad 模拟器独立启动。验证提交为 `4836c32a7c01ddfb5ecaa071d1f570224be1f2a9`。
+Vela Player 0.1.1 于 2026-10-29（香港时间）通过 [ARM64 设备 IPA 构建](https://github.com/hi-craft/localframe-player/actions/runs/40733292760)，构建提交为 `9b853b118a9a9ef9d6d2df2a4b237668844d6da5`。已核对安装包完整性、版本、英文名称及播放框架嵌入。本次按用户要求采用 `build_only`，跳过测试和模拟器步骤。
+
+此前的 [完整原生验证](https://github.com/hi-craft/localframe-player/actions/runs/40723131697) 覆盖 7 项 Core 测试、4 项原生播放/首帧测试，以及 iPhone / iPad 模拟器独立启动；该记录对应改名前的提交 `4836c32a7c01ddfb5ecaa071d1f570224be1f2a9`。
 
 **真机播放、500～1000 个视频的性能、系统音量和外接盘拔插仍待两台设备验收。**模拟器测试中还观察到 MobileVLCKit 视频视图的后台线程图层修改诊断，详情见 `VALIDATION.md`。Windows 安装步骤见 [INSTALL-Windows.md](INSTALL-Windows.md)。
 
 ## 使用 GitHub 云端构建（无需 Apple 密码或开发证书）
 
 1. 将本目录中的内容放在 GitHub 私有仓库根目录，确保 `.github/workflows/ios.yml` 一起上传。
-2. 打开仓库 **Actions → Build iOS → Run workflow**，或向 `main` 推送代码自动触发。
+2. 打开仓库 **Actions → Build iOS → Run workflow**，或向 `main` 推送代码自动触发。手动运行时可勾选 `build_only`，只构建设备 IPA，跳过逻辑测试、模拟器编译和启动验证。
 3. 工作流先运行 Swift Package 逻辑测试，然后生成 Xcode 工程、安装固定版本内核，构建设备安装包；模拟器中验证 MP4/MKV 首帧、取消/远程输入拒绝和实际播放进度，最后分别启动 iPhone / iPad 保存截图。
 4. 成功后，在该次运行的 Artifacts 下载 `LocalFrame-unsigned-ipa`。解压得到 `LocalFrame-unsigned.ipa`。
 5. `build-diagnostics` 含编译日志、测试输出及模拟器启动截图。播放内核采用固定官方发布包及 SHA-256 校验，不依赖 CocoaPods 在线解析。
