@@ -28,7 +28,7 @@ for family in ("iPhone", "iPad"):
             run("xcrun", "simctl", "boot", identifier)
         run("xcrun", "simctl", "bootstatus", identifier, "-b")
         if family == "iPhone":
-            command = ["xcodebuild", "test", "-workspace", "LocalFrame.xcworkspace", "-scheme", "LocalFrame",
+            command = ["xcodebuild", "test", "-project", "LocalFrame.xcodeproj", "-scheme", "LocalFrame",
                        "-configuration", "Debug", "-destination", f"id={identifier}",
                        "-derivedDataPath", "build/simulator", "-parallel-testing-enabled", "NO",
                        "CODE_SIGNING_ALLOWED=NO", "CODE_SIGNING_REQUIRED=NO", "CODE_SIGN_IDENTITY="]

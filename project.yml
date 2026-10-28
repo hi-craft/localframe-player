@@ -21,6 +21,23 @@ targets:
       - path: App
     dependencies:
       - package: LocalLibraryCore
+      - framework: Vendor/MobileVLCKit.xcframework
+        embed: false
+      - sdk: QuartzCore.framework
+      - sdk: CoreText.framework
+      - sdk: AVFoundation.framework
+      - sdk: Security.framework
+      - sdk: CFNetwork.framework
+      - sdk: AudioToolbox.framework
+      - sdk: OpenGLES.framework
+      - sdk: CoreGraphics.framework
+      - sdk: VideoToolbox.framework
+      - sdk: CoreMedia.framework
+      - sdk: libc++.tbd
+      - sdk: libxml2.tbd
+      - sdk: libz.tbd
+      - sdk: libbz2.tbd
+      - sdk: libiconv.tbd
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.localframe.player
@@ -32,7 +49,9 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: App/Bridge/LocalFrame-Bridging-Header.h
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
-        HEADER_SEARCH_PATHS: '$(inherited) "$(PODS_XCFRAMEWORKS_BUILD_DIR)/MobileVLCKit/MobileVLCKit.framework/Headers"'
+        "HEADER_SEARCH_PATHS[sdk=iphoneos*]": '$(inherited) "$(PROJECT_DIR)/Vendor/MobileVLCKit.xcframework/ios-arm64_armv7_armv7s/MobileVLCKit.framework/Headers"'
+        "HEADER_SEARCH_PATHS[sdk=iphonesimulator*]": '$(inherited) "$(PROJECT_DIR)/Vendor/MobileVLCKit.xcframework/ios-arm64_x86_64-simulator/MobileVLCKit.framework/Headers"'
+        OTHER_LDFLAGS: '$(inherited) -ObjC'
     scheme:
       gatherCoverageData: false
       testTargets:

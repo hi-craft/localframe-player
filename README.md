@@ -25,7 +25,7 @@
 2. 打开仓库 **Actions → Build iOS → Run workflow**，或向 `main` 推送代码自动触发。
 3. 工作流先运行 Swift Package 逻辑测试，然后生成 Xcode 工程、安装固定版本内核，构建设备安装包；模拟器中验证 MP4/MKV 首帧、取消/远程输入拒绝和实际播放进度，最后分别启动 iPhone / iPad 保存截图。
 4. 成功后，在该次运行的 Artifacts 下载 `LocalFrame-unsigned-ipa`。解压得到 `LocalFrame-unsigned.ipa`。
-5. `build-diagnostics` 含编译日志、测试输出、实际依赖锁文件及模拟器启动截图。首次构建生成的 `Podfile.lock` 可提交回仓库，进一步固定依赖解析。
+5. `build-diagnostics` 含编译日志、测试输出及模拟器启动截图。播放内核采用固定官方发布包及 SHA-256 校验，不依赖 CocoaPods 在线解析。
 
 **unsigned IPA 需要签名才能安装，不能直接点开安装。**云端构建不需要 Apple 账号；网络用于下载构建依赖和上传产物，与播放器运行时行为分开。
 
@@ -49,10 +49,9 @@
 
 ```sh
 brew install xcodegen
-bundle install
+bash scripts/fetch-playback-framework.sh
 xcodegen generate
-bundle exec pod install
-open LocalFrame.xcworkspace
+open LocalFrame.xcodeproj
 ```
 
 在 Xcode 中选择自己的 Team 和唯一 Bundle ID，连接设备后运行。只构建无签名 IPA：
@@ -85,5 +84,7 @@ swift test --package-path Core
 - `App/Playback/`：播放状态、设备断开检测、手势和系统音量。
 - `App/Views/`：iPhone / iPad 自适应列表、播放器、目录与缓存设置。
 - `.github/workflows/ios.yml`：测试、编译、打包、模拟器启动检查。
+
+播放内核直接集成官方 XCFramework；版本为 3.7.4，下载与 SHA-256 校验固定在 `scripts/fetch-playback-framework.sh`。首次构建下载并验证，之后复用构建缓存。
 
 开源内核许可见 `THIRD_PARTY_NOTICES.md` 和随 App 提供的上游许可。

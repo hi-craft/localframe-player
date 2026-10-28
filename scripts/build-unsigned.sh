@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/ipa/Payload
-xcodebuild -workspace LocalFrame.xcworkspace -scheme LocalFrame -configuration Release \
+xcodebuild -project LocalFrame.xcodeproj -scheme LocalFrame -configuration Release \
   -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build/device \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' \
   build 2>&1 | tee build/device-build.log

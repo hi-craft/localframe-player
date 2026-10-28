@@ -24,9 +24,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Show Xcode version
         run: xcodebuild -version
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
       - name: Run library logic tests
         run: |
           set -o pipefail
@@ -34,33 +31,31 @@ jobs:
           swift test --package-path Core 2>&1 | tee build/core-tests.log
       - name: Generate local decoding test samples
         run: bash scripts/generate-test-media.sh
+      - name: Restore playback framework cache
+        id: playback-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: Vendor/MobileVLCKit.xcframework
+          key: vlckit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/fetch-playback-framework.sh') }}
+      - name: Install pinned playback framework
+        timeout-minutes: 6
+        run: bash scripts/fetch-playback-framework.sh
+      - name: Save playback framework cache
+        if: steps.playback-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: Vendor/MobileVLCKit.xcframework
+          key: vlckit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/fetch-playback-framework.sh') }}
       - name: Generate Xcode project
         run: |
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen generate
-      - name: Restore playback framework cache
-        id: pods-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: Pods
-          key: pods-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Podfile') }}
-      - name: Install pinned playback framework
-        run: |
-          bundle install --jobs 4 --retry 3
-          bundle exec pod install
-          cp Podfile.lock build/Podfile.lock
-      - name: Save playback framework cache
-        if: steps.pods-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: Pods
-          key: pods-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Podfile') }}
       - name: Build unsigned device app and IPA
         run: bash scripts/build-unsigned.sh
       - name: Build simulator app
         run: |
           set -o pipefail
-          xcodebuild -workspace LocalFrame.xcworkspace -scheme LocalFrame -configuration Debug \
+          xcodebuild -project LocalFrame.xcodeproj -scheme LocalFrame -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee build/simulator-build.log
@@ -81,6 +76,5 @@ jobs:
           path: |
             build/*.log
             build/*.png
-            build/Podfile.lock
           if-no-files-found: ignore
           retention-days: 14
