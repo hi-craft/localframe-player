@@ -6,6 +6,7 @@ struct PlayerPanel: View {
     let expanded: Bool
     let chooseFolder: () -> Void
     let manageFolders: () -> Void
+    let close: () -> Void
     let toggleFullscreen: () -> Void
     @State private var controlsVisible = true
     @State private var hud: String?
@@ -13,20 +14,18 @@ struct PlayerPanel: View {
     @State private var hudTask: Task<Void, Never>?
     @State private var scrubValue = 0.0
     @State private var scrubbing = false
+    @State private var excludedAreas: [CGRect] = []
 
     var body: some View {
-        ZStack {
-            Color.black
-            VideoSurface(player: player, volume: volume, onTap: {
-                withAnimation(.easeOut(duration: 0.15)) { controlsVisible.toggle() }
-                scheduleHide()
-            }, onHUD: showHUD)
+        VideoSurface(player: player, volume: volume, onTap: toggleControls,
+                     onHUD: showHUD, excludedAreas: excludedAreas) {
+          ZStack {
             if player.current == nil {
                 VStack(spacing: 14) {
                     Image(systemName: "play.rectangle").font(.system(size: 40, weight: .ultraLight))
                     Text("视频留在原处，打开即播放").font(.subheadline)
                     Button("选择视频目录", systemImage: "folder.badge.plus", action: chooseFolder)
-                        .buttonStyle(.borderedProminent).tint(AppStyle.accent).foregroundStyle(.black)
+                        .buttonStyle(.borderedProminent).tint(AppStyle.accent).foregroundStyle(.black).playbackControl()
                 }
                 .foregroundStyle(.white.opacity(0.7))
             } else {
@@ -39,7 +38,7 @@ struct PlayerPanel: View {
                     VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle").font(.title2)
                         Text(message).font(.callout).multilineTextAlignment(.center)
-                        Button("重新尝试", action: player.toggle).buttonStyle(.bordered)
+                        Button("重新尝试", action: player.toggle).buttonStyle(.bordered).playbackControl()
                     }
                     .padding(20).frame(maxWidth: 360).background(.black.opacity(0.9), in: RoundedRectangle(cornerRadius: 16))
                     .foregroundStyle(.white)
@@ -51,8 +50,15 @@ struct PlayerPanel: View {
                         .offset(y: -35).allowsHitTesting(false)
                 }
             }
+          }
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .coordinateSpace(name: "playerCanvas")
+          .onPreferenceChange(PlaybackControlAreas.self) { areas in
+              if excludedAreas != areas { excludedAreas = areas }
+          }
         }
         .clipped()
+        .onAppear { controlsVisible = true; scheduleHide() }
         .onChange(of: player.current?.id) { _, _ in controlsVisible = true; scheduleHide() }
         .onChange(of: player.status) { _, _ in scheduleHide() }
         .onDisappear { hideTask?.cancel(); hudTask?.cancel() }
@@ -67,7 +73,7 @@ struct PlayerPanel: View {
                     if expanded { control("folder", label: "目录管理", action: manageFolders) }
                     Text(player.current?.fileName ?? "").font(.subheadline.weight(.medium)).lineLimit(1)
                     Spacer(minLength: 0)
-                    control("xmark", label: "关闭视频", action: player.close)
+                    control("chevron.down", label: "返回资料库", action: close)
                 }
                 Spacer(minLength: 12)
                 HStack(spacing: expanded ? 44 : 32) {
@@ -79,6 +85,7 @@ struct PlayerPanel: View {
                             .frame(width: 64, height: 58)
                     }
                     .accessibilityLabel(player.isPlaying ? "暂停" : "播放")
+                    .playbackControl()
                     control("forward.end.fill", label: "下一个视频", action: player.next)
                         .disabled(!player.queue.hasNext)
                 }
@@ -93,6 +100,7 @@ struct PlayerPanel: View {
                     })
                     .tint(AppStyle.accent).disabled(!player.isSeekable)
                     .accessibilityLabel("播放进度")
+                    .playbackControl()
                     HStack(spacing: 12) {
                         Text(PlaybackTime.string(scrubbing ? scrubValue : player.seconds) + " / " + PlaybackTime.string(player.duration))
                             .font(.system(.caption, design: .monospaced)).monospacedDigit()
@@ -105,6 +113,7 @@ struct PlayerPanel: View {
                                 }
                             }
                         } label: { Text(rateLabel(player.rate)).font(.subheadline.weight(.semibold)).frame(minWidth: 36, minHeight: 36) }
+                        .playbackControl()
                         if expanded {
                             control(player.showsPlaylist ? "list.bullet.rectangle.fill" : "list.bullet.rectangle",
                                     label: "显示或隐藏播放列表") { player.showsPlaylist.toggle(); scheduleHide() }
@@ -123,6 +132,12 @@ struct PlayerPanel: View {
     private func control(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: symbol).font(.system(size: 17, weight: .medium)).frame(width: 40, height: 40) }
             .accessibilityLabel(label)
+            .playbackControl()
+    }
+
+    private func toggleControls() {
+        withAnimation(.easeOut(duration: 0.15)) { controlsVisible.toggle() }
+        scheduleHide()
     }
 
     private func rateLabel(_ value: Float) -> String { String(format: "%g×", value) }
@@ -145,5 +160,19 @@ struct PlayerPanel: View {
             do { try await Task.sleep(for: .seconds(4)) } catch { return }
             withAnimation(.easeOut(duration: 0.2)) { controlsVisible = false }
         }
+    }
+}
+
+private struct PlaybackControlAreas: PreferenceKey {
+    static var defaultValue: [CGRect] = []
+    static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) { value += nextValue() }
+}
+
+private extension View {
+    func playbackControl() -> some View {
+        background(GeometryReader { geometry in
+            Color.clear.preference(key: PlaybackControlAreas.self,
+                                   value: [geometry.frame(in: .named("playerCanvas"))])
+        })
     }
 }

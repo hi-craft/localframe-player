@@ -22,16 +22,18 @@ private struct PreparedVideo: @unchecked Sendable {
     @Published private(set) var isSeekable = false
     @Published private(set) var rate: Float = 1
     @Published private(set) var failureMessage: String?
+    @Published private(set) var isBusy = false
     @Published var isFullscreen = false
     @Published var showsPlaylist = false
     let engine = LPPlaybackBridge()
     var isPlaying: Bool { status == .playing || status == .buffering }
-    var isBusy: Bool { status == .opening || status == .buffering }
     private let library: LibraryStore
     private var lease: FolderLease?
     private var currentURL: URL?
     private var loadTask: Task<Void, Never>?
     private var availabilityTask: Task<Void, Never>?
+    private var loadingTask: Task<Void, Never>?
+    private var activity = PlaybackActivity()
     private var requestID = UUID()
     private var engineLoaded = false
     private var appActive = true
@@ -48,6 +50,11 @@ private struct PreparedVideo: @unchecked Sendable {
             self.seconds = seconds
             self.duration = duration
             self.isSeekable = seekable
+            let advanced = self.activity.update(seconds: seconds, at: ProcessInfo.processInfo.systemUptime)
+            if advanced && self.appActive && self.wantsPlayback && self.status != .ended && self.status != .failed {
+                if self.status != .playing { self.status = .playing }
+                self.clearLoading()
+            }
         }
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: AVAudioSession.interruptionNotification,
@@ -90,6 +97,7 @@ private struct PreparedVideo: @unchecked Sendable {
 
     func pause() {
         wantsPlayback = false
+        clearLoading()
         engine.pause()
         if current != nil && status != .failed && status != .ended { status = .paused }
         UIApplication.shared.isIdleTimerDisabled = false
@@ -124,6 +132,8 @@ private struct PreparedVideo: @unchecked Sendable {
         requestID = UUID()
         loadTask?.cancel()
         availabilityTask?.cancel()
+        clearLoading()
+        activity.reset()
         let previousLease = lease
         lease = nil
         engineLoaded = false
@@ -153,6 +163,9 @@ private struct PreparedVideo: @unchecked Sendable {
         failureMessage = nil
         status = .opening
         wantsPlayback = true
+        clearLoading()
+        activity.reset()
+        scheduleLoading()
         seconds = 0; duration = 0; isSeekable = false
         engineLoaded = false
         let previousLease = lease
@@ -204,6 +217,7 @@ private struct PreparedVideo: @unchecked Sendable {
 
     private func fail(_ message: String, disconnected: Bool = false) {
         wantsPlayback = false
+        clearLoading()
         status = .failed
         failureMessage = message
         availabilityTask?.cancel()
@@ -244,20 +258,45 @@ private struct PreparedVideo: @unchecked Sendable {
     private func receive(_ state: String) {
         guard current != nil else { return }
         switch state {
-        case "opening": status = wantsPlayback ? .opening : .paused
-        case "buffering": status = wantsPlayback ? .buffering : .paused
+        case "opening":
+            status = wantsPlayback ? .opening : .paused
+            if wantsPlayback { scheduleLoading() }
+        case "buffering":
+            guard wantsPlayback else { status = .paused; clearLoading(); return }
+            // VLC can report buffering after it has already started advancing the clock.
+            guard !activity.hasRecentProgress(at: ProcessInfo.processInfo.systemUptime) else { return }
+            status = .buffering
+            scheduleLoading()
         case "playing":
             guard appActive, wantsPlayback else { pause(); return }
             status = .playing
-        case "paused": status = .paused
+            clearLoading()
+        case "paused": status = .paused; clearLoading()
         case "ended":
             status = .ended
+            clearLoading()
             availabilityTask?.cancel()
             if appActive && wantsPlayback && queue.hasNext { next() }
         case "error": handlePlaybackError()
         default: break
         }
         UIApplication.shared.isIdleTimerDisabled = isPlaying
+    }
+
+    private func scheduleLoading() {
+        guard loadingTask == nil else { return }
+        loadingTask = Task {
+            do { try await Task.sleep(for: .milliseconds(700)) } catch { return }
+            loadingTask = nil
+            guard wantsPlayback, status == .opening || status == .buffering else { return }
+            isBusy = !activity.hasRecentProgress(at: ProcessInfo.processInfo.systemUptime)
+        }
+    }
+
+    private func clearLoading() {
+        loadingTask?.cancel()
+        loadingTask = nil
+        if isBusy { isBusy = false }
     }
 
     private func restoreBrightness() {

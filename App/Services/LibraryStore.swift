@@ -39,7 +39,7 @@ private struct SourceScan: Sendable {
         do {
             let saved = try await disk.load()
             sources = saved.sources
-            videos = VideoItem.sorted(saved.videos)
+            videos = saved.videos
             for source in sources { statuses[source.id] = .checking }
         } catch {
             notice = "无法读取本地索引：\(error.localizedDescription)。可以重新添加目录。"
@@ -153,15 +153,12 @@ private struct SourceScan: Sendable {
                           let index = sources.firstIndex(where: { $0.id == source.id }) else { return }
                     sources[index].lastKnownPath = result.path
                     if let bookmark = result.bookmark { sources[index].bookmark = bookmark }
-                    if result.scan.unreadableCount == 0 {
-                        videos.removeAll { $0.sourceID == source.id }
-                    } else {
+                    if result.scan.unreadableCount > 0 {
                         // Preserve unverified old entries on partial I/O failure; update every successfully seen file.
-                        let seen = Set(result.scan.videos.map(\.id))
-                        videos.removeAll { $0.sourceID == source.id && seen.contains($0.id) }
                         notice = "\(source.name)：\(result.scan.unreadableCount) 个位置暂时无法读取，保留未确认的旧索引。"
                     }
-                    videos = VideoItem.sorted(videos + result.scan.videos)
+                    videos = LibraryReadOrder.merging(result.scan.videos, sourceID: source.id, into: videos,
+                        sourceOrder: sources.map(\.id), keepUnseen: result.scan.unreadableCount > 0)
                     statuses[source.id] = .ready
                     if result.scan.excludedCloudCount > 0 {
                         notice = "已跳过 \(result.scan.excludedCloudCount) 个云端项目。仅扫描本地视频。"

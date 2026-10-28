@@ -34,18 +34,33 @@ struct SystemVolumeView: UIViewRepresentable {
     func updateUIView(_ uiView: MPVolumeView, context: Context) {}
 }
 
-struct VideoSurface: UIViewRepresentable {
+struct VideoSurface<Overlay: View>: UIViewControllerRepresentable {
     let player: PlayerController
     let volume: SystemVolume
     let onTap: () -> Void
     let onHUD: (String?) -> Void
+    let excludedAreas: [CGRect]
+    let overlay: () -> Overlay
 
-    func makeUIView(context: Context) -> VideoGestureContainer {
-        VideoGestureContainer(player: player, volume: volume)
+    init(player: PlayerController, volume: SystemVolume, onTap: @escaping () -> Void,
+         onHUD: @escaping (String?) -> Void, excludedAreas: [CGRect], @ViewBuilder overlay: @escaping () -> Overlay) {
+        self.player = player
+        self.volume = volume
+        self.onTap = onTap
+        self.onHUD = onHUD
+        self.excludedAreas = excludedAreas
+        self.overlay = overlay
     }
-    func updateUIView(_ view: VideoGestureContainer, context: Context) {
+
+    func makeUIViewController(context: Context) -> VideoCanvasController {
+        VideoCanvasController(player: player, volume: volume)
+    }
+    func updateUIViewController(_ controller: VideoCanvasController, context: Context) {
+        let view = controller.surface
         view.onTap = onTap
         view.onHUD = onHUD
+        view.excludedAreas = excludedAreas
+        controller.overlay.rootView = AnyView(overlay())
         if view.videoID != player.current?.id {
             view.videoID = player.current?.id
             view.resetZoom()
@@ -53,10 +68,37 @@ struct VideoSurface: UIViewRepresentable {
     }
 }
 
+final class VideoCanvasController: UIViewController {
+    let surface: VideoGestureContainer
+    let overlay = UIHostingController(rootView: AnyView(EmptyView()))
+
+    init(player: PlayerController, volume: SystemVolume) {
+        surface = VideoGestureContainer(player: player, volume: volume)
+        super.init(nibName: nil, bundle: nil)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func loadView() { view = surface }
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        addChild(overlay)
+        overlay.view.backgroundColor = .clear
+        overlay.view.translatesAutoresizingMaskIntoConstraints = false
+        surface.addSubview(overlay.view)
+        NSLayoutConstraint.activate([
+            overlay.view.leadingAnchor.constraint(equalTo: surface.leadingAnchor),
+            overlay.view.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+            overlay.view.topAnchor.constraint(equalTo: surface.topAnchor),
+            overlay.view.bottomAnchor.constraint(equalTo: surface.bottomAnchor)
+        ])
+        overlay.didMove(toParent: self)
+    }
+}
+
 final class VideoGestureContainer: UIView, UIGestureRecognizerDelegate {
     var onTap: (() -> Void)?
     var onHUD: ((String?) -> Void)?
     var videoID: String?
+    var excludedAreas: [CGRect] = []
     private let player: PlayerController
     private let volume: SystemVolume
     private var zoom: CGFloat = 1
@@ -180,6 +222,11 @@ final class VideoGestureContainer: UIView, UIGestureRecognizerDelegate {
 
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         player.current != nil
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        let point = touch.location(in: self)
+        return bounds.contains(point) && !excludedAreas.contains { $0.insetBy(dx: -4, dy: -4).contains(point) }
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,

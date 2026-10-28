@@ -7,10 +7,35 @@ final class LibraryTests: XCTestCase {
         VideoItem(sourceID: source, relativePath: name, byteCount: 400, modifiedAt: .distantPast)
     }
 
-    func testNaturalSortingAndDuplicateNameTieBreak() {
-        let names = VideoItem.sorted([video("第10集.mp4"), video("B/第2集.mp4"),
-                                      video("第1集.mp4"), video("A/第2集.mp4")]).map(\.relativePath)
-        XCTAssertEqual(names, ["第1集.mp4", "A/第2集.mp4", "B/第2集.mp4", "第10集.mp4"])
+    func testScanOrderIsPreservedAcrossRootRefreshes() {
+        let second = UUID()
+        let other = VideoItem(sourceID: second, relativePath: "second.mp4", byteCount: 1, modifiedAt: .distantPast)
+        let scanned = [video("第10集.mp4"), video("B/第2集.mp4"), video("第1集.mp4")]
+        let result = LibraryReadOrder.merging(scanned, sourceID: source, into: [other, video("old.mp4")],
+            sourceOrder: [source, second], keepUnseen: false)
+        XCTAssertEqual(result, scanned + [other])
+        XCTAssertEqual(LibraryReadOrder.merging([other], sourceID: second, into: result,
+            sourceOrder: [source, second], keepUnseen: false), result)
+    }
+
+    func testPartialScanKeepsUnseenEntriesAfterTheReadSequence() {
+        let existing = [video("old.mp4"), video("updated.mp4")]
+        let scanned = [video("new.mp4"), video("updated.mp4")]
+        XCTAssertEqual(LibraryReadOrder.merging(scanned, sourceID: source, into: existing,
+            sourceOrder: [source], keepUnseen: true), scanned + [video("old.mp4")])
+    }
+
+    func testAdvancingPlaybackClearsBufferingUntilItActuallyStalls() {
+        var activity = PlaybackActivity()
+        XCTAssertFalse(activity.hasRecentProgress(at: 1))
+        XCTAssertTrue(activity.update(seconds: 0.2, at: 1))
+        XCTAssertTrue(activity.hasRecentProgress(at: 1.8))
+        XCTAssertFalse(activity.update(seconds: 0.2, at: 2))
+        XCTAssertFalse(activity.hasRecentProgress(at: 2.1))
+        XCTAssertTrue(activity.update(seconds: 0.4, at: 2.2))
+        XCTAssertTrue(activity.hasRecentProgress(at: 2.3))
+        activity.reset()
+        XCTAssertFalse(activity.hasRecentProgress(at: 2.4))
     }
 
     func testQueueStopsAtEndAndDoesNotWrap() {

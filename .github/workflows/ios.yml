@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       build_only:
-        description: Build the device IPA only, skipping tests and simulators
+        description: Build the device IPA with core tests, skipping simulators
         type: boolean
         required: false
         default: false
@@ -31,7 +31,6 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
       - name: Run library logic tests
-        if: ${{ !inputs.build_only }}
         run: |
           set -o pipefail
           mkdir -p build

@@ -37,14 +37,35 @@ public struct VideoItem: Codable, Identifiable, Equatable, Sendable {
         self.modifiedAt = modifiedAt
     }
 
-    public static func sorted(_ items: [VideoItem]) -> [VideoItem] {
-        items.sorted {
-            let nameOrder = $0.fileName.localizedStandardCompare($1.fileName)
-            if nameOrder != .orderedSame { return nameOrder == .orderedAscending }
-            let pathOrder = $0.relativePath.localizedStandardCompare($1.relativePath)
-            if pathOrder != .orderedSame { return pathOrder == .orderedAscending }
-            return $0.sourceID.uuidString < $1.sourceID.uuidString
+}
+
+public enum LibraryReadOrder {
+    /// Keeps each scan's enumeration order and the order in which roots are scanned.
+    public static func merging(_ scanned: [VideoItem], sourceID: UUID, into existing: [VideoItem],
+                               sourceOrder: [UUID], keepUnseen: Bool) -> [VideoItem] {
+        let seen = Set(scanned.map(\.id))
+        let preserved = keepUnseen ? existing.filter { $0.sourceID == sourceID && !seen.contains($0.id) } : []
+        return sourceOrder.flatMap { id in
+            id == sourceID ? scanned + preserved : existing.filter { $0.sourceID == id }
         }
+    }
+}
+
+public struct PlaybackActivity: Sendable {
+    private var lastSeconds: Double?
+    private var advancedAt: TimeInterval?
+    public init() {}
+    public mutating func reset() { lastSeconds = nil; advancedAt = nil }
+    @discardableResult public mutating func update(seconds: Double, at time: TimeInterval) -> Bool {
+        guard seconds.isFinite, time.isFinite else { return false }
+        let advanced = seconds > (lastSeconds ?? 0) + 0.01
+        lastSeconds = seconds
+        if advanced { advancedAt = time }
+        return advanced
+    }
+    public func hasRecentProgress(at time: TimeInterval, tolerance: TimeInterval = 1) -> Bool {
+        guard let advancedAt else { return false }
+        return time >= advancedAt && time - advancedAt < tolerance
     }
 }
 
