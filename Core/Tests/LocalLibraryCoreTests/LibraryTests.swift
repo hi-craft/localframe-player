@@ -36,15 +36,16 @@ final class LibraryTests: XCTestCase {
     func testRecursiveScanSkipsHiddenFilesAndSymlinks() throws {
         let manager = FileManager.default
         let root = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try manager.createDirectory(at: root.appendingPathComponent("season"), withIntermediateDirectories: true)
+        try manager.createDirectory(at: root.appendingPathComponent("season/deep"), withIntermediateDirectories: true)
         defer { try? manager.removeItem(at: root) }
-        for name in ["1.MP4", "season/2.mkv", ".hidden.mp4", "note.txt", "stream.m3u8"] {
+        for name in ["1.MP4", "season/2.mkv", "season/deep/3.mov", ".hidden.mp4", "note.txt", "stream.m3u8"] {
             try Data([0]).write(to: root.appendingPathComponent(name))
         }
         try manager.createSymbolicLink(at: root.appendingPathComponent("shortcut.mp4"),
                                        withDestinationURL: root.appendingPathComponent("1.MP4"))
+        try manager.createSymbolicLink(at: root.appendingPathComponent("season/deep/cycle"), withDestinationURL: root)
         let result = try DirectoryScanner.scan(sourceID: source, root: root)
-        XCTAssertEqual(Set(result.videos.map(\.relativePath)), ["1.MP4", "season/2.mkv"],
+        XCTAssertEqual(Set(result.videos.map(\.relativePath)), ["1.MP4", "season/2.mkv", "season/deep/3.mov"],
                        "root=\(root.path), canonical=\(LocalMediaPath.directoryPath(root)), errors=\(result.unreadableCount), cloud=\(result.excludedCloudCount)")
         XCTAssertThrowsError(try LocalMediaPath.resolve("shortcut.mp4", under: root))
     }

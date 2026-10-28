@@ -27,34 +27,40 @@ public enum DirectoryScanner {
         let prefix = basePath == "/" ? "/" : basePath + "/"
         var failures = 0
         var cloudFiles = 0
-        guard let enumerator = FileManager.default.enumerator(
-            at: base, includingPropertiesForKeys: Array(keys),
-            options: [.skipsHiddenFiles, .skipsPackageDescendants],
-            errorHandler: { _, _ in failures += 1; return !isCancelled() }
-        ) else { throw LibraryFailure.unavailable }
         var items: [VideoItem] = []
-        for case let file as URL in enumerator {
+        var pending = [base]
+        var visited: Set<String> = []
+        while let directory = pending.popLast() {
             if isCancelled() { throw CancellationError() }
+            let directoryPath = LocalMediaPath.directoryPath(directory)
+            guard directoryPath == basePath || directoryPath.hasPrefix(prefix),
+                  visited.insert(directoryPath).inserted else { continue }
+            let children: [URL]
             do {
-                let values = try file.resourceValues(forKeys: keys)
-                if values.isSymbolicLink == true {
-                    enumerator.skipDescendants()
-                    continue
-                }
-                if values.isUbiquitousItem == true {
-                    enumerator.skipDescendants()
-                    cloudFiles += 1
-                    continue
-                }
-                guard values.isRegularFile == true,
-                      LocalMediaPath.videoExtensions.contains(file.pathExtension.lowercased()) else { continue }
-                let filePath = file.standardizedFileURL.resolvingSymlinksInPath().path
-                guard filePath.hasPrefix(prefix) else { continue }
-                let relative = String(filePath.dropFirst(prefix.count))
-                items.append(VideoItem(sourceID: sourceID, relativePath: relative,
-                                       byteCount: Int64(values.fileSize ?? 0),
-                                       modifiedAt: values.contentModificationDate ?? .distantPast))
-            } catch { failures += 1 }
+                children = try FileManager.default.contentsOfDirectory(at: directory,
+                    includingPropertiesForKeys: Array(keys), options: [.skipsHiddenFiles])
+            } catch {
+                if directoryPath == basePath { throw error }
+                failures += 1
+                continue
+            }
+            for file in children {
+                if isCancelled() { throw CancellationError() }
+                do {
+                    let values = try file.resourceValues(forKeys: keys)
+                    guard values.isSymbolicLink != true else { continue }
+                    if values.isUbiquitousItem == true { cloudFiles += 1; continue }
+                    if values.isDirectory == true { pending.append(file); continue }
+                    guard values.isRegularFile == true,
+                          LocalMediaPath.videoExtensions.contains(file.pathExtension.lowercased()) else { continue }
+                    let filePath = file.standardizedFileURL.resolvingSymlinksInPath().path
+                    guard filePath.hasPrefix(prefix) else { continue }
+                    let relative = String(filePath.dropFirst(prefix.count))
+                    items.append(VideoItem(sourceID: sourceID, relativePath: relative,
+                                           byteCount: Int64(values.fileSize ?? 0),
+                                           modifiedAt: values.contentModificationDate ?? .distantPast))
+                } catch { failures += 1 }
+            }
         }
         if isCancelled() { throw CancellationError() }
         // An unplugged device must never turn a cached library into an empty successful scan.
