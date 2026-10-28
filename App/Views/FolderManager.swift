@@ -51,7 +51,7 @@ struct FolderManager: View {
                 }.font(.footnote)
                 Section {
                     NavigationLink("开源组件与许可") { OpenSourceView() }
-                    LabeledContent("版本", value: "LocalFrame 0.1.0")
+                    LabeledContent("版本", value: "Vela Player 0.1.1")
                 }
             }
             .navigationTitle("目录与设置").navigationBarTitleDisplayMode(.inline)

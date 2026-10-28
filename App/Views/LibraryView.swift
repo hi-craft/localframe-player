@@ -62,8 +62,8 @@ struct LibraryView: View {
     private var header: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("本地映像").font(.title2.bold())
-                Text("LOCALFRAME").font(.system(size: 9, weight: .semibold, design: .monospaced))
+                Text("Vela Player").font(.title2.bold())
+                Text("OFFLINE CINEMA").font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .tracking(2.5).foregroundStyle(AppStyle.accent)
             }
             Spacer()
