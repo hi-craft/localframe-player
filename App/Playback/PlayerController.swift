@@ -217,6 +217,30 @@ private struct PreparedVideo: @unchecked Sendable {
         UIApplication.shared.isIdleTimerDisabled = false
     }
 
+    private func handlePlaybackError() {
+        let token = requestID
+        let checkedLease = lease
+        let checkedItem = current
+        fail("无法播放此视频。文件可能已移走、损坏或编码不受支持。")
+        guard let checkedLease, let checkedItem else { return }
+        // A decoder error can arrive before the two-second availability check. Diagnose it
+        // after stopping so an unplugged device is still marked offline instead of losing the check.
+        Task {
+            let availability = await Task.detached(priority: .utility) {
+                let directoryExists = FileManager.default.fileExists(atPath: checkedLease.url.path)
+                let fileExists = (try? checkedLease.fileURL(for: checkedItem)) != nil
+                return (directoryExists, fileExists)
+            }.value
+            guard token == requestID, status == .failed else { return }
+            if !availability.0 {
+                library.markUnavailable(checkedItem.sourceID, reason: "未连接或需要重新授权")
+                failureMessage = "目录或外接存储已断开。请重新连接后刷新目录，再手动开始播放。"
+            } else if !availability.1 {
+                failureMessage = "视频已移走或暂时不可读。请刷新目录，或重新授权后再播放。"
+            }
+        }
+    }
+
     private func receive(_ state: String) {
         guard current != nil else { return }
         switch state {
@@ -230,7 +254,7 @@ private struct PreparedVideo: @unchecked Sendable {
             status = .ended
             availabilityTask?.cancel()
             if appActive && wantsPlayback && queue.hasNext { next() }
-        case "error": fail("无法播放此视频。文件可能已移走、损坏或编码不受支持。")
+        case "error": handlePlaybackError()
         default: break
         }
         UIApplication.shared.isIdleTimerDisabled = isPlaying
