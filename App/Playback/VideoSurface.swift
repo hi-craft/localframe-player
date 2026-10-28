@@ -39,16 +39,14 @@ struct VideoSurface<Overlay: View>: UIViewControllerRepresentable {
     let volume: SystemVolume
     let onTap: () -> Void
     let onHUD: (String?) -> Void
-    let excludedAreas: [CGRect]
     let overlay: () -> Overlay
 
     init(player: PlayerController, volume: SystemVolume, onTap: @escaping () -> Void,
-         onHUD: @escaping (String?) -> Void, excludedAreas: [CGRect], @ViewBuilder overlay: @escaping () -> Overlay) {
+         onHUD: @escaping (String?) -> Void, @ViewBuilder overlay: @escaping () -> Overlay) {
         self.player = player
         self.volume = volume
         self.onTap = onTap
         self.onHUD = onHUD
-        self.excludedAreas = excludedAreas
         self.overlay = overlay
     }
 
@@ -59,7 +57,6 @@ struct VideoSurface<Overlay: View>: UIViewControllerRepresentable {
         let view = controller.surface
         view.onTap = onTap
         view.onHUD = onHUD
-        view.excludedAreas = excludedAreas
         controller.overlay.rootView = AnyView(overlay())
         if view.videoID != player.current?.id {
             view.videoID = player.current?.id
@@ -98,7 +95,7 @@ final class VideoGestureContainer: UIView, UIGestureRecognizerDelegate {
     var onTap: (() -> Void)?
     var onHUD: ((String?) -> Void)?
     var videoID: String?
-    var excludedAreas: [CGRect] = []
+    let controlViews = NSHashTable<UIView>.weakObjects()
     private let player: PlayerController
     private let volume: SystemVolume
     private var zoom: CGFloat = 1
@@ -226,13 +223,45 @@ final class VideoGestureContainer: UIView, UIGestureRecognizerDelegate {
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         let point = touch.location(in: self)
-        return bounds.contains(point) && !excludedAreas.contains { $0.insetBy(dx: -4, dy: -4).contains(point) }
+        return bounds.contains(point) && !controlViews.allObjects.contains { control in
+            control.window === window && control.convert(control.bounds, to: self)
+                .insetBy(dx: -4, dy: -4).contains(point)
+        }
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         (gestureRecognizer is UIPinchGestureRecognizer && (otherGestureRecognizer as? UIPanGestureRecognizer)?.minimumNumberOfTouches == 2)
         || (otherGestureRecognizer is UIPinchGestureRecognizer && (gestureRecognizer as? UIPanGestureRecognizer)?.minimumNumberOfTouches == 2)
+    }
+}
+
+/// Measures controls in UIKit's actual hierarchy, including fullscreen safe-area offsets.
+struct PlaybackControlArea: UIViewRepresentable {
+    func makeUIView(context: Context) -> PlaybackControlAreaView { PlaybackControlAreaView() }
+    func updateUIView(_ uiView: PlaybackControlAreaView, context: Context) {}
+    static func dismantleUIView(_ uiView: PlaybackControlAreaView, coordinator: ()) { uiView.unregister() }
+}
+
+final class PlaybackControlAreaView: UIView {
+    private weak var canvas: VideoGestureContainer?
+    init() { super.init(frame: .zero); isUserInteractionEnabled = false }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func didMoveToWindow() { super.didMoveToWindow(); register() }
+    override func didMoveToSuperview() { super.didMoveToSuperview(); register() }
+    override func layoutSubviews() { super.layoutSubviews(); register() }
+    func unregister() { canvas?.controlViews.remove(self); canvas = nil }
+    private func register() {
+        guard window != nil else { unregister(); return }
+        var ancestor = superview
+        while let current = ancestor {
+            if let owner = current as? VideoGestureContainer {
+                if canvas !== owner { unregister(); canvas = owner; owner.controlViews.add(self) }
+                return
+            }
+            ancestor = current.superview
+        }
+        unregister()
     }
 }
 

@@ -14,11 +14,10 @@ struct PlayerPanel: View {
     @State private var hudTask: Task<Void, Never>?
     @State private var scrubValue = 0.0
     @State private var scrubbing = false
-    @State private var excludedAreas: [CGRect] = []
 
     var body: some View {
         VideoSurface(player: player, volume: volume, onTap: toggleControls,
-                     onHUD: showHUD, excludedAreas: excludedAreas) {
+                     onHUD: showHUD) {
           ZStack {
             if player.current == nil {
                 VStack(spacing: 14) {
@@ -52,10 +51,6 @@ struct PlayerPanel: View {
             }
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .coordinateSpace(name: "playerCanvas")
-          .onPreferenceChange(PlaybackControlAreas.self) { areas in
-              if excludedAreas != areas { excludedAreas = areas }
-          }
         }
         .clipped()
         .onAppear { controlsVisible = true; scheduleHide() }
@@ -163,16 +158,8 @@ struct PlayerPanel: View {
     }
 }
 
-private struct PlaybackControlAreas: PreferenceKey {
-    static var defaultValue: [CGRect] = []
-    static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) { value += nextValue() }
-}
-
 private extension View {
     func playbackControl() -> some View {
-        background(GeometryReader { geometry in
-            Color.clear.preference(key: PlaybackControlAreas.self,
-                                   value: [geometry.frame(in: .named("playerCanvas"))])
-        })
+        background(PlaybackControlArea())
     }
 }
