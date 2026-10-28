@@ -1,0 +1,15 @@
+.DS_Store
+Pods/
+*.xcworkspace/
+*.xcodeproj/
+.build/
+.swiftpm/
+build/
+vendor/
+.bundle/
+*.p12
+*.mobileprovision
+*.mobileconfig
+*.ipa
+*.xcarchive/
+*.xcresult/

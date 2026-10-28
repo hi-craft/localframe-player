@@ -1,0 +1,71 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      COCOAPODS_DISABLE_STATS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - name: Run library logic tests
+        run: |
+          set -o pipefail
+          mkdir -p build
+          swift test --package-path Core 2>&1 | tee build/core-tests.log
+      - name: Generate Xcode project
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate
+      - name: Install pinned playback framework
+        run: |
+          bundle install --jobs 4 --retry 3
+          bundle exec pod install
+          cp Podfile.lock build/Podfile.lock
+      - name: Build unsigned device app and IPA
+        run: bash scripts/build-unsigned.sh
+      - name: Build simulator app
+        run: |
+          set -o pipefail
+          xcodebuild -workspace LocalFrame.xcworkspace -scheme LocalFrame -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee build/simulator-build.log
+      - name: Launch on iPhone and iPad simulators
+        run: python3 scripts/simulator-smoke.py
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LocalFrame-unsigned-ipa
+          path: build/LocalFrame-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload diagnostics and simulator screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics
+          path: |
+            build/*.log
+            build/*.png
+            build/Podfile.lock
+          if-no-files-found: ignore
+          retention-days: 14
