@@ -18,7 +18,6 @@ private final class AttachedVolumeView: MPVolumeView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil {
-            showsRouteButton = false
             showsVolumeSlider = true
             volume?.slider = subviews.compactMap { $0 as? UISlider }.first
         }
@@ -179,7 +178,7 @@ final class VideoGestureContainer: UIView, UIGestureRecognizerDelegate {
         }
     }
 
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         player.current != nil
     }
 
