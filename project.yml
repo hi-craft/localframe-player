@@ -35,3 +35,17 @@ targets:
         HEADER_SEARCH_PATHS: '$(inherited) "$(PODS_XCFRAMEWORKS_BUILD_DIR)/MobileVLCKit/MobileVLCKit.framework/Headers"'
     scheme:
       gatherCoverageData: false
+      testTargets:
+        - LocalFrameTests
+  LocalFrameTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: LocalFrame
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.localframe.player.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_OBJC_BRIDGING_HEADER: App/Bridge/LocalFrame-Bridging-Header.h

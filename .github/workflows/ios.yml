@@ -15,10 +15,11 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 45
     env:
       COCOAPODS_DISABLE_STATS: 'true'
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
       - name: Show Xcode version
@@ -31,6 +32,8 @@ jobs:
           set -o pipefail
           mkdir -p build
           swift test --package-path Core 2>&1 | tee build/core-tests.log
+      - name: Generate local decoding test samples
+        run: bash scripts/generate-test-media.sh
       - name: Generate Xcode project
         run: |
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen

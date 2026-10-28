@@ -13,3 +13,4 @@ vendor/
 *.ipa
 *.xcarchive/
 *.xcresult/
+Tests/Fixtures/

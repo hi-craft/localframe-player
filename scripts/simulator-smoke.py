@@ -1,6 +1,7 @@
 """Launch the actual compiled app on one iPhone and one iPad simulator. No playback is claimed."""
 import json
 import pathlib
+import re
 import subprocess
 import time
 
@@ -13,7 +14,9 @@ def run(*args):
 
 
 inventory = json.loads(run("xcrun", "simctl", "list", "devices", "available", "--json"))
-devices = [device for runtime, values in inventory["devices"].items() if "iOS" in runtime for device in values]
+runtime_names = sorted((name for name in inventory["devices"] if "iOS" in name),
+                       key=lambda name: tuple(map(int, re.findall(r"\d+", name.split("iOS-")[-1]))), reverse=True)
+devices = [device for runtime in runtime_names for device in inventory["devices"][runtime]]
 for family in ("iPhone", "iPad"):
     device = next((device for device in devices if device["name"].startswith(family)), None)
     if device is None:
@@ -24,6 +27,17 @@ for family in ("iPhone", "iPad"):
         if booted_here:
             run("xcrun", "simctl", "boot", identifier)
         run("xcrun", "simctl", "bootstatus", identifier, "-b")
+        if family == "iPhone":
+            command = ["xcodebuild", "test", "-workspace", "LocalFrame.xcworkspace", "-scheme", "LocalFrame",
+                       "-configuration", "Debug", "-destination", f"id={identifier}",
+                       "-derivedDataPath", "build/simulator", "-parallel-testing-enabled", "NO",
+                       "CODE_SIGNING_ALLOWED=NO", "CODE_SIGNING_REQUIRED=NO", "CODE_SIGN_IDENTITY="]
+            with (ROOT / "build/playback-tests.log").open("w") as log:
+                result = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=False)
+            if result.returncode:
+                print((ROOT / "build/playback-tests.log").read_text()[-18000:])
+                raise RuntimeError("Native playback/first-frame tests failed; inspect playback-tests.log")
+            print("Native MP4/MKV first-frame, cancellation, remote-input rejection and playback tests passed.")
         run("xcrun", "simctl", "install", identifier, str(APP))
         result = run("xcrun", "simctl", "launch", identifier, "com.localframe.player")
         if "com.localframe.player:" not in result:

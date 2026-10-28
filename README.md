@@ -1,6 +1,6 @@
 # 本地映像 · LocalFrame
 
-为 iPhone 15 Pro Max 和 iPad Air M1 设计的本地视频播放器。SwiftUI / UIKit 界面，MobileVLCKit 3.7.4 播放内核。最低 iOS / iPadOS 17；云端使用 macOS 26 构建机自带 Xcode。
+为 iPhone 15 Pro Max 和 iPad Air M1 设计的本地视频播放器。SwiftUI / UIKit 界面，MobileVLCKit 3.7.4 播放内核。最低 iOS / iPadOS 17；云端使用 macOS 15 构建机上的 Xcode 26.3。
 
 ## 已实现的首版范围
 
@@ -23,7 +23,7 @@
 
 1. 将本目录中的内容放在 GitHub 私有仓库根目录，确保 `.github/workflows/ios.yml` 一起上传。
 2. 打开仓库 **Actions → Build iOS → Run workflow**，或向 `main` 推送代码自动触发。
-3. 工作流先运行 Swift Package 逻辑测试，然后生成 Xcode 工程、安装固定版本内核，构建设备安装包，再编译模拟器版本并分别启动 iPhone / iPad。
+3. 工作流先运行 Swift Package 逻辑测试，然后生成 Xcode 工程、安装固定版本内核，构建设备安装包；模拟器中验证 MP4/MKV 首帧、取消/远程输入拒绝和实际播放进度，最后分别启动 iPhone / iPad 保存截图。
 4. 成功后，在该次运行的 Artifacts 下载 `LocalFrame-unsigned-ipa`。解压得到 `LocalFrame-unsigned.ipa`。
 5. `build-diagnostics` 含编译日志、测试输出、实际依赖锁文件及模拟器启动截图。首次构建生成的 `Podfile.lock` 可提交回仓库，进一步固定依赖解析。
 
