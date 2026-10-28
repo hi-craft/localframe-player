@@ -22,7 +22,7 @@ targets:
     dependencies:
       - package: LocalLibraryCore
       - framework: Vendor/MobileVLCKit.xcframework
-        embed: false
+        embed: true
       - sdk: QuartzCore.framework
       - sdk: CoreText.framework
       - sdk: AVFoundation.framework

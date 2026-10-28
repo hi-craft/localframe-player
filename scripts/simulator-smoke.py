@@ -10,7 +10,11 @@ APP = ROOT / "build/simulator/Build/Products/Debug-iphonesimulator/LocalFrame.ap
 
 
 def run(*args):
-    return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT).strip()
+    try:
+        return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT).strip()
+    except subprocess.CalledProcessError as error:
+        print(error.output, flush=True)
+        raise
 
 
 inventory = json.loads(run("xcrun", "simctl", "list", "devices", "available", "--json"))

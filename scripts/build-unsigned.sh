@@ -8,6 +8,7 @@ xcodebuild -project LocalFrame.xcodeproj -scheme LocalFrame -configuration Relea
   build 2>&1 | tee build/device-build.log
 app='build/device/Build/Products/Release-iphoneos/LocalFrame.app'
 test -d "$app"
+test -f "$app/Frameworks/MobileVLCKit.framework/MobileVLCKit"
 ditto "$app" build/ipa/Payload/LocalFrame.app
 (
   cd build/ipa

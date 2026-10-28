@@ -56,7 +56,7 @@ final class PlaybackTests: XCTestCase {
         let window = try XCTUnwrap(UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first { $0.isKeyWindow })
         bridge.videoView.frame = CGRect(x: 0, y: 0, width: 320, height: 180)
-        window.addSubview(bridge.videoView)
+        try XCTUnwrap(window.rootViewController?.view).addSubview(bridge.videoView)
         let playing = expectation(description: "VLC enters playing state")
         let progressing = expectation(description: "VLC reports playable local media progress")
         var sawPlaying = false
