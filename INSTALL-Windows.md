@@ -7,7 +7,7 @@
 1. 按 [SideStore 官方安装说明](https://docs.sidestore.io/docs/installation/install)，在 Windows 上完成 SideStore 的初次安装、设备配对及账号授权；开发者模式、信任和设备端确认由你在设备上完成。
 2. 按官方说明安装 [LocalDevVPN](https://apps.apple.com/app/localdevvpn/id6755608044)，在手机上连接并允许其 VPN 配置。这是手机本地的开发连接通道，不需要选择国家或购买 VPN 服务。保持 Wi-Fi 已连接，完成 SideStore 登录后，在 My Apps 中点 SideStore 的剩余天数按钮，确认首次刷新成功。
 3. 将 `LocalFrame-unsigned.ipa` 放入设备的“文件”。在 SideStore 的 My Apps 中点 `+`，选择这个 IPA，由 SideStore 签名并安装。
-4. 打开桌面上的“Vela Player”，点添加目录，在系统选择器中选择“我的 iPhone / iPad”或外接存储目录。首次扫描后列表自动显示视频；点击视频开始播放。
+4. 打开桌面上的“Vela Player”，点添加目录，在系统选择器中选择“我的 iPhone / iPad”或外接存储目录。首次扫描后首页以三列首帧封面展示视频；点击封面进入播放页。
 5. SideStore 会尝试后台续签。免费签名周期仍约 7 天，首次设置完成后应确认后台刷新和剩余有效期正常。参阅 [SideStore FAQ](https://docs.sidestore.io/docs/faq.html)。
 
 也可使用 [AltStore Classic 的 Windows 路线](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows)，由 Windows 上的 AltServer 辅助刷新签名。
@@ -20,7 +20,7 @@ SideStore 问题区有“iloader 登录成功、手机登录失败”的相同�
 
 ### 安装时 appIdName 无效
 
-SideStore 注册 App ID 时会使用应用名称，中文名称可能被拒绝，参见 [SideStore 问题 #1489](https://github.com/SideStore/SideStore/issues/1489)。0.1.1 的 `CFBundleDisplayName` 和 `CFBundleName` 使用英文 `Vela Player`，应用内保留中文操作界面。旧包若提示“本地映像 was provided for the parameter appIdName”，请改选修正后的 `VelaPlayer-0.1.1.ipa`。
+SideStore 注册 App ID 时会使用应用名称，中文名称可能被拒绝，参见 [SideStore 问题 #1489](https://github.com/SideStore/SideStore/issues/1489)。`CFBundleDisplayName` 和 `CFBundleName` 使用英文 `Vela Player`，应用内保留中文操作界面。旧包若提示“本地映像 was provided for the parameter appIdName”，请改选新版 `VelaPlayer-0.2.0.ipa`。
 
 ### 刷新时通知未授权
 
@@ -33,6 +33,8 @@ SideStore 注册 App ID 时会使用应用名称，中文名称可能被拒绝�
 ## 首次真机检查
 
 - 先用几段本地 MP4 / MOV / MKV 检查播放、暂停、进度、倍速和首帧封面。
+- 首页应为三列 2:3 首帧封面，下面至多两行文件标题；点击后进入独立播放页，返回资料库时停止播放。视频保留扫描读取顺序，不再做名称或日期二次排序。
+- 播放开始、时间前进后，加载圈应消失；单击画面空白处显示或隐藏控制。浮层出现时，按钮和进度条应独立响应。
 - 检查单击、双击、左右亮度/音量手势、捏合与放大后的双指拖动。
 - 检查横竖屏、全屏、列表切换，以及锁屏、切后台和耳机拔出时的暂停行为。
 - 外接盘播放中拔出，应停止播放并保留索引；重新连接并刷新后，手动开始播放。

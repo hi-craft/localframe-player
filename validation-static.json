@@ -12,17 +12,39 @@
   "pythonAndBashSyntax": "passed",
   "upstreamPlaybackArchiveSha256": "c649c4c47bd065b3a5511746361b5a9066a34033f2df9cbc9454409c0f363b52",
   "app": "Vela Player",
-  "version": "0.1.1",
-  "build": "2",
-  "swiftUnitTests": "skipped for this build at user request",
+  "version": "0.2.0",
+  "build": "3",
+  "swiftUnitTests": {
+    "passed": 9,
+    "failures": 0
+  },
   "nativePlaybackTests": "skipped for this build at user request",
-  "xcodeBuild": {"device": "passed; Release arm64", "simulator": "skipped at user request", "xcode": "26.3", "sdk": "26.2"},
+  "xcodeBuild": {
+    "device": "passed; Release arm64",
+    "simulator": "skipped at user request",
+    "xcode": "26.3",
+    "sdk": "26.2"
+  },
   "simulatorSmoke": "skipped for this build at user request",
-  "physicalDevices": "not tested",
+  "physicalDevices": "0.2.0 awaiting user confirmation; user reported playback and control issues in 0.1.1",
   "remoteRepository": "https://github.com/hi-craft/localframe-player (private)",
-  "validatedCommit": "9b853b118a9a9ef9d6d2df2a4b237668844d6da5",
-  "workflowRun": "https://github.com/hi-craft/localframe-player/actions/runs/40733292760",
-  "ipa": {"filename": "VelaPlayer-0.1.1.ipa", "signing": "unsigned", "bytes": 50937392, "sha256": "d8c9d9e915f9e4aba9fb5a1543792cb390ad1da83fcbb53c22bc09b7f45e45b4", "embeddedPlaybackFramework": true, "asciiSigningNames": true},
-  "previousValidation": {"commit": "4836c32a7c01ddfb5ecaa071d1f570224be1f2a9", "workflowRun": "https://github.com/hi-craft/localframe-player/actions/runs/40723131697", "coreTestsPassed": 7, "nativeTestsPassed": 4, "iPhoneSimulatorLaunch": "passed", "iPadSimulatorLaunch": "passed"},
+  "validatedCommit": "585ebf5985a3011b889d7eb0fc666dcc7951d07f",
+  "workflowRun": "https://github.com/hi-craft/localframe-player/actions/runs/40738060248",
+  "ipa": {
+    "filename": "VelaPlayer-0.2.0.ipa",
+    "signing": "unsigned",
+    "bytes": 50961436,
+    "sha256": "39ef7e145ad6337bc13fcb7624829b3c6bd30dc7ea9ac10520cb6b25bdabab64",
+    "embeddedPlaybackFramework": true,
+    "asciiSigningNames": true
+  },
+  "previousValidation": {
+    "commit": "4836c32a7c01ddfb5ecaa071d1f570224be1f2a9",
+    "workflowRun": "https://github.com/hi-craft/localframe-player/actions/runs/40723131697",
+    "coreTestsPassed": 7,
+    "nativeTestsPassed": 4,
+    "iPhoneSimulatorLaunch": "passed",
+    "iPadSimulatorLaunch": "passed"
+  },
   "observedDiagnostic": "MobileVLCKit VLCOpenGLES2VideoView layer mutation off main thread during simulator playback test; tests and standalone launches passed"
 }

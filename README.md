@@ -19,7 +19,7 @@
 
 ## 当前验证状态
 
-Vela Player 0.1.1 于 2026-10-29（香港时间）通过 [ARM64 设备 IPA 构建](https://github.com/hi-craft/localframe-player/actions/runs/40733292760)，构建提交为 `9b853b118a9a9ef9d6d2df2a4b237668844d6da5`。已核对安装包完整性、版本、英文名称及播放框架嵌入。本次按用户要求采用 `build_only`，跳过测试和模拟器步骤。
+Vela Player 0.2.0 于 2026-10-29（香港时间）通过 [Core 回归检查与 ARM64 设备 IPA 构建](https://github.com/hi-craft/localframe-player/actions/runs/40738060248)，构建提交为 `585ebf5985a3011b889d7eb0fc666dcc7951d07f`。9 项 Core 测试全部通过，已核对安装包完整性、版本、英文名称及播放框架嵌入。本次按用户要求跳过模拟器编译与验证，新版界面、触控和旋转效果仍待真机确认。
 
 此前的 [完整原生验证](https://github.com/hi-craft/localframe-player/actions/runs/40723131697) 覆盖 7 项 Core 测试、4 项原生播放/首帧测试，以及 iPhone / iPad 模拟器独立启动；该记录对应改名前的提交 `4836c32a7c01ddfb5ecaa071d1f570224be1f2a9`。
 

@@ -5,14 +5,17 @@
 本文件记录实际检查，不将源码审阅或脚本存在视为通过原生编译。
 
 - Windows 静态检查：2026-10-29 已通过。16 个 Swift 文件和 2 个 Objective-C 实现文件通过 Tree-sitter 语法解析（零语法错误）；JSON / YAML 和应用 plist 解析通过。语法解析不包含 Swift 类型检查、链接或 iOS API 可用性检查。
-- Vela Player 0.1.1（build 2）设备构建：Xcode 26.3、iOS SDK 26.2 的 ARM64 Release 构建成功。已检查 ZIP 完整性、ARM64 可执行文件、iPhone / iPad 设备类型及动态播放框架嵌入；不含测试视频。
+- Vela Player 0.2.0（build 3）设备构建：Xcode 26.3、iOS SDK 26.2 的 ARM64 Release 构建成功。已检查 ZIP 完整性、ARM64 可执行文件、iPhone / iPad 设备类型及动态播放框架嵌入；不含测试视频。
 - 签名名称：包内 `CFBundleDisplayName` 和 `CFBundleName` 均为 ASCII 名称 `Vela Player`，修正此前中文 appIdName 被拒绝的问题。
-- 本次测试、模拟器构建和启动：按用户要求使用 `build_only` 跳过，以尽快提供安装包。
+- Core 测试：9 项通过，零失败，覆盖扫描读取顺序、部分扫描合并、播放时钟前进与缓冲判定等。
+- 模拟器构建、启动和原生播放测试：按用户要求使用 `build_only` 跳过。新版三列封面、独立播放页、触控区域和全屏布局通过设备编译，交互效果待真机确认。
 - iPhone 15 Pro Max、iPad Air M1 真机：待用户设备验证。
 
-当前构建提交：`9b853b118a9a9ef9d6d2df2a4b237668844d6da5`。[设备构建成功记录](https://github.com/hi-craft/localframe-player/actions/runs/40733292760) 使用 `macos-15-intel` 构建机，产物为 ARM64 iPhone / iPad 应用。私有仓库为 [hi-craft/localframe-player](https://github.com/hi-craft/localframe-player)。
+当前构建提交：`585ebf5985a3011b889d7eb0fc666dcc7951d07f`。[设备构建成功记录](https://github.com/hi-craft/localframe-player/actions/runs/40738060248) 使用 `macos-15-intel` 构建机，产物为 ARM64 iPhone / iPad 应用。私有仓库为 [hi-craft/localframe-player](https://github.com/hi-craft/localframe-player)。
 
-`VelaPlayer-0.1.1.ipa` 为无签名包，大小为 50,937,392 字节，SHA-256：`d8c9d9e915f9e4aba9fb5a1543792cb390ad1da83fcbb53c22bc09b7f45e45b4`。需要用户自己的签名后才能安装。
+`VelaPlayer-0.2.0.ipa` 为无签名包，大小为 50,961,436 字节，SHA-256：`39ef7e145ad6337bc13fcb7624829b3c6bd30dc7ea9ac10520cb6b25bdabab64`。需要用户自己的签名后才能安装。
+
+0.1.1 的用户真机反馈确认视频可播放，同时报告了加载圈常驻、全屏无反应及单击不唤起浮层。0.2.0 调整了缓冲活动判定，将视频与浮层置于共同触控容器，并使用实际 UIKit 控件范围排除按钮/滑块手势；这些修复尚未记为真机验收通过。
 
 ## 改名前的完整验证基线
 
@@ -26,7 +29,7 @@
 
 ## 自动检查覆盖
 
-自然排序与同名文件稳定顺序；连播停止边界；路径穿越、远程路径、符号链接和播放列表拒绝；递归扫描与隐藏文件过滤；取消/失败扫描；封面 LRU 预算；持久化数据不包含播放进度。
+扫描读取顺序在目录刷新时保留；部分扫描合并与缓存旧条目保留；播放时钟前进和停滞判定；连播停止边界；路径穿越、远程路径、符号链接和播放列表拒绝；递归扫描与隐藏文件过滤；取消/失败扫描；封面 LRU 预算；持久化数据不包含播放进度。
 
 云端另外独立启动已构建的 App 并保存截图。原生播放测试验证所用样本能解码；独立启动截图只证明首屏能启动，不证明全部手势、音量或外接盘行为正确。
 
