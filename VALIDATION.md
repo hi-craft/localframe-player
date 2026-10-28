@@ -4,19 +4,28 @@
 
 本文件记录实际检查，不将源码审阅或脚本存在视为通过原生编译。
 
-- Windows 静态检查：2026-10-28 已通过。15 个 Swift 文件和 2 个 Objective-C 实现文件通过 Tree-sitter 语法解析（零语法错误）；JSON / YAML 解析、2 个 plist / privacy manifest 和 Python / Bash 脚本语法检查通过。语法解析不包含 Swift 类型检查、链接或 iOS API 可用性检查。
-- Core Swift 测试：待在 macOS 构建环境执行。
-- iOS / iPadOS 原生编译：待执行。
-- iPhone / iPad 模拟器启动：待执行。
+- Windows 静态检查：2026-10-28 已通过。16 个 Swift 文件和 2 个 Objective-C 实现文件通过 Tree-sitter 语法解析（零语法错误）；JSON / YAML 解析、2 个 plist / privacy manifest 和 Python / Bash 脚本语法检查通过。语法解析不包含 Swift 类型检查、链接或 iOS API 可用性检查。
+- Core Swift 测试：7 项通过，零失败。
+- iOS / iPadOS 原生编译：Xcode 26.3、iOS SDK 26.2 的 ARM64 Release 设备构建和模拟器构建均成功。最终 IPA 已检查 ZIP 完整性、ARM64 可执行文件、iPhone / iPad 设备类型及动态播放框架嵌入；不含测试视频。
+- 原生播放测试：4 项通过，零失败；检查 MP4 / MKV 首个解码帧、取消/远程输入拒绝，以及实际播放的时间、时长和可定位状态。
+- iPhone / iPad 模拟器启动：分别安装并独立启动成功；已核对两张首屏截图，未见文字截断或控件重叠。
 - iPhone 15 Pro Max、iPad Air M1 真机：待用户设备验证。
 
-已通过 GitHub CLI 完成用户授权并创建私有仓库：https://github.com/hi-craft/localframe-player 。即将推送并运行 Actions；尚未生成 IPA，原生验证仍以实际构建结果为准。
+验证提交：`4836c32a7c01ddfb5ecaa071d1f570224be1f2a9`。[完整成功运行](https://github.com/hi-craft/localframe-player/actions/runs/40723131697) 于 2026-10-28 16:32 UTC 完成，即香港时间 2026-10-29 00:32。使用 `macos-15-intel` 构建机，产物仍为 ARM64 iPhone / iPad 应用。私有仓库为 [hi-craft/localframe-player](https://github.com/hi-craft/localframe-player)。
+
+最终无签名 IPA 大小为 50,937,379 字节，SHA-256：`9e830c24d5c4d2a84b57908ee88c0edf7cef66cf7919bf9af2d0ee89fe826b70`。需要用户自己的签名后才能安装。
+
+## 已观察到的限制
+
+模拟器原生播放测试期间，MobileVLCKit 的 `VLCOpenGLES2VideoView doResetBuffers:` 输出后台线程修改视图图层的诊断。4 项测试仍通过，随后独立启动也成功；目前不能据此承诺所有设备播放过程稳定。真机验收需关注黑屏、旋转、快速切换和停止播放时的表现。
+
+自动测试使用少量合成 MP4 / MKV 样本，不覆盖实际 300 MB～1 GB 文件、全部容器/编码、4K / HDR、千文件性能、系统音量、授权持久化及外接盘断开。上述项目保留为真机验收项。
 
 ## 自动检查覆盖
 
 自然排序与同名文件稳定顺序；连播停止边界；路径穿越、远程路径、符号链接和播放列表拒绝；递归扫描与隐藏文件过滤；取消/失败扫描；封面 LRU 预算；持久化数据不包含播放进度。
 
-云端编译成功后另行启动真实构建的 App 并保存启动截图。启动检查仅证明能启动，不证明视频解码、手势、音量或外接盘行为正确。
+云端另外独立启动已构建的 App 并保存截图。原生播放测试验证所用样本能解码；独立启动截图只证明首屏能启动，不证明全部手势、音量或外接盘行为正确。
 
 ## 真机操作清单
 

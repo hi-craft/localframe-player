@@ -17,7 +17,9 @@
 
 ## 当前验证状态
 
-工程源码、逻辑测试、云端构建和模拟器启动脚本已提供。**源码存在不等于已经通过 Xcode 编译或真机测试。**请以 GitHub Actions 的实际运行结果及本仓库 `VALIDATION.md` 为准。Windows 本机不能运行 iOS 模拟器。
+2026-10-29（香港时间）已通过 [GitHub Actions 原生构建与测试](https://github.com/hi-craft/localframe-player/actions/runs/40723131697)：7 项 Core 测试、4 项原生播放/首帧测试、ARM64 设备 IPA 构建、模拟器构建，以及 iPhone / iPad 模拟器独立启动。验证提交为 `4836c32a7c01ddfb5ecaa071d1f570224be1f2a9`。
+
+**真机播放、500～1000 个视频的性能、系统音量和外接盘拔插仍待两台设备验收。**模拟器测试中还观察到 MobileVLCKit 视频视图的后台线程图层修改诊断，详情见 `VALIDATION.md`。Windows 安装步骤见 [INSTALL-Windows.md](INSTALL-Windows.md)。
 
 ## 使用 GitHub 云端构建（无需 Apple 密码或开发证书）
 

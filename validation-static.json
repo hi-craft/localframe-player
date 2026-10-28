@@ -1,8 +1,8 @@
 {
-  "date": "2026-10-28",
+  "date": "2026-10-29",
   "sourceSyntax": {
     "tool": "Tree-sitter WASM via Node 22.20.0",
-    "swiftFiles": 15,
+    "swiftFiles": 16,
     "objectiveCImplementationFiles": 2,
     "syntaxErrors": 0,
     "typeChecking": false
@@ -11,10 +11,14 @@
   "plistFiles": 2,
   "pythonAndBashSyntax": "passed",
   "upstreamPlaybackArchiveSha256": "c649c4c47bd065b3a5511746361b5a9066a34033f2df9cbc9454409c0f363b52",
-  "swiftUnitTests": "written, not executed",
-  "xcodeBuild": "not executed",
-  "simulatorSmoke": "not executed",
+  "swiftUnitTests": {"passed": 7, "failures": 0},
+  "nativePlaybackTests": {"passed": 4, "failures": 0},
+  "xcodeBuild": {"device": "passed; Release arm64", "simulator": "passed", "xcode": "26.3", "sdk": "26.2"},
+  "simulatorSmoke": {"iPhone": "passed", "iPad": "passed", "startupScreenshotsReviewed": true},
   "physicalDevices": "not tested",
   "remoteRepository": "https://github.com/hi-craft/localframe-player (private)",
-  "ipa": "not generated"
+  "validatedCommit": "4836c32a7c01ddfb5ecaa071d1f570224be1f2a9",
+  "workflowRun": "https://github.com/hi-craft/localframe-player/actions/runs/40723131697",
+  "ipa": {"signing": "unsigned", "bytes": 50937379, "sha256": "9e830c24d5c4d2a84b57908ee88c0edf7cef66cf7919bf9af2d0ee89fe826b70", "embeddedPlaybackFramework": true},
+  "observedDiagnostic": "MobileVLCKit VLCOpenGLES2VideoView layer mutation off main thread during simulator playback test; tests and standalone launches passed"
 }
