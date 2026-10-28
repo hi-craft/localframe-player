@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_only:
+        description: Build the device IPA only, skipping tests and simulators
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -25,11 +31,13 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
       - name: Run library logic tests
+        if: ${{ !inputs.build_only }}
         run: |
           set -o pipefail
           mkdir -p build
           swift test --package-path Core 2>&1 | tee build/core-tests.log
       - name: Generate local decoding test samples
+        if: ${{ !inputs.build_only }}
         run: bash scripts/generate-test-media.sh
       - name: Restore playback framework cache
         id: playback-cache
@@ -53,6 +61,7 @@ jobs:
       - name: Build unsigned device app and IPA
         run: bash scripts/build-unsigned.sh
       - name: Build simulator app
+        if: ${{ !inputs.build_only }}
         run: |
           set -o pipefail
           xcodebuild -project LocalFrame.xcodeproj -scheme LocalFrame -configuration Debug \
@@ -60,6 +69,7 @@ jobs:
             -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee build/simulator-build.log
       - name: Launch on iPhone and iPad simulators
+        if: ${{ !inputs.build_only }}
         run: python3 scripts/simulator-smoke.py
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
