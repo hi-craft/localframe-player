@@ -15,6 +15,7 @@ public enum DirectoryScanner {
     /// Enumerates metadata only. Does not parse videos or request cloud downloads.
     public static func scan(sourceID: UUID, root: URL,
                             isCancelled: () -> Bool = { false }) throws -> DirectoryScan {
+        if isCancelled() { throw CancellationError() }
         guard root.isFileURL else { throw LibraryFailure.remoteSource }
         let rootValues = try root.resourceValues(forKeys: [.isDirectoryKey, .isUbiquitousItemKey, .volumeIsLocalKey])
         guard rootValues.isUbiquitousItem != true, rootValues.volumeIsLocal != false else {
@@ -52,6 +53,7 @@ public enum DirectoryScanner {
                                        modifiedAt: values.contentModificationDate ?? .distantPast))
             } catch { failures += 1 }
         }
+        if isCancelled() { throw CancellationError() }
         // An unplugged device must never turn a cached library into an empty successful scan.
         guard FileManager.default.fileExists(atPath: root.path) else { throw LibraryFailure.unavailable }
         return DirectoryScan(videos: items, unreadableCount: failures, excludedCloudCount: cloudFiles)

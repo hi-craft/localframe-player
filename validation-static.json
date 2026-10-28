@@ -15,6 +15,6 @@
   "xcodeBuild": "not executed",
   "simulatorSmoke": "not executed",
   "physicalDevices": "not tested",
-  "remoteRepository": "not created",
+  "remoteRepository": "https://github.com/hi-craft/localframe-player (private)",
   "ipa": "not generated"
 }

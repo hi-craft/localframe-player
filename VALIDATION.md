@@ -10,7 +10,7 @@
 - iPhone / iPad 模拟器启动：待执行。
 - iPhone 15 Pro Max、iPad Air M1 真机：待用户设备验证。
 
-GitHub 插件已安装，用户已授权创建私有仓库 `localframe-player`。本轮尚未提供可调用的 GitHub 仓库工具；浏览器备用路径被电脑操作工具停止，原因为无法可靠识别 Windows 浏览器当前网址。未创建远程仓库、未运行 Actions，未生成 IPA；此状态不能视为云端构建完成。
+已通过 GitHub CLI 完成用户授权并创建私有仓库：https://github.com/hi-craft/localframe-player 。即将推送并运行 Actions；尚未生成 IPA，原生验证仍以实际构建结果为准。
 
 ## 自动检查覆盖
 
