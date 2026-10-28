@@ -1,5 +1,7 @@
 # Vela Player
 
+跨电脑接续请先阅读 [HANDOFF.md](HANDOFF.md)，其中记录最新需求、0.2.0 安装状态、待验收问题和快速构建方法。
+
 为 iPhone 15 Pro Max 和 iPad Air M1 设计的本地视频播放器。SwiftUI / UIKit 界面，MobileVLCKit 3.7.4 播放内核。最低 iOS / iPadOS 17；云端使用 macOS 15 构建机上的 Xcode 26.3。
 
 应用名称为 Vela Player，工程与仓库目录沿用 LocalFrame。0.1.1 将桌面名称和签名注册名称统一为英文，修正 SideStore 注册中文 appIdName 时安装失败的问题；操作界面保留中文。
