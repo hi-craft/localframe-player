@@ -44,7 +44,7 @@ final class FolderLease: @unchecked Sendable {
 }
 
 enum CoordinatedRead {
-    static func perform<T>(at url: URL, _ read: (URL) throws -> T) throws -> T {
+    static func perform<T>(at url: URL, _ read: @escaping (URL) throws -> T) throws -> T {
         let coordinator = NSFileCoordinator()
         var coordinationError: NSError?
         var result: Result<T, Error>?

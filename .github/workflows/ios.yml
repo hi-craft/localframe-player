@@ -35,11 +35,23 @@ jobs:
         run: |
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen generate
+      - name: Restore playback framework cache
+        id: pods-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: Pods
+          key: pods-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Podfile') }}
       - name: Install pinned playback framework
         run: |
           bundle install --jobs 4 --retry 3
           bundle exec pod install
           cp Podfile.lock build/Podfile.lock
+      - name: Save playback framework cache
+        if: steps.pods-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: Pods
+          key: pods-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Podfile') }}
       - name: Build unsigned device app and IPA
         run: bash scripts/build-unsigned.sh
       - name: Build simulator app
