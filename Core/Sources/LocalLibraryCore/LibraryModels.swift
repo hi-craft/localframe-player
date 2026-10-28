@@ -77,6 +77,11 @@ public enum LibraryFailure: LocalizedError {
 }
 
 public enum LocalMediaPath {
+    public static func directoryPath(_ url: URL) -> String {
+        var path = url.standardizedFileURL.resolvingSymlinksInPath().path
+        while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
+        return path
+    }
     public static let videoExtensions: Set<String> = [
         "mp4", "m4v", "mov", "mkv", "avi", "webm", "mpg", "mpeg",
         "ts", "m2ts", "mts", "3gp", "flv", "wmv"
@@ -89,9 +94,10 @@ public enum LocalMediaPath {
                 .contains(where: { $0 == ".." || $0 == "." || $0.isEmpty }) else {
             throw LibraryFailure.invalidPath
         }
-        let base = root.standardizedFileURL.resolvingSymlinksInPath()
+        let base = URL(fileURLWithPath: directoryPath(root), isDirectory: true)
+        let prefix = directoryPath(base) == "/" ? "/" : directoryPath(base) + "/"
         let file = base.appendingPathComponent(relativePath).standardizedFileURL
-        guard file.path.hasPrefix(base.path + "/"),
+        guard file.path.hasPrefix(prefix),
               file.resolvingSymlinksInPath().path == file.path,
               videoExtensions.contains(file.pathExtension.lowercased()) else {
             throw LibraryFailure.invalidPath
@@ -100,8 +106,8 @@ public enum LocalMediaPath {
     }
 
     public static func overlaps(_ lhs: URL, _ rhs: URL) -> Bool {
-        let a = lhs.standardizedFileURL.resolvingSymlinksInPath().path
-        let b = rhs.standardizedFileURL.resolvingSymlinksInPath().path
+        let a = directoryPath(lhs)
+        let b = directoryPath(rhs)
         return a == b || a.hasPrefix(b + "/") || b.hasPrefix(a + "/")
     }
 }

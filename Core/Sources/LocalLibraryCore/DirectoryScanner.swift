@@ -23,6 +23,8 @@ public enum DirectoryScanner {
         }
         guard rootValues.isDirectory == true else { throw LibraryFailure.unavailable }
         let base = root.standardizedFileURL.resolvingSymlinksInPath()
+        let basePath = LocalMediaPath.directoryPath(base)
+        let prefix = basePath == "/" ? "/" : basePath + "/"
         var failures = 0
         var cloudFiles = 0
         guard let enumerator = FileManager.default.enumerator(
@@ -45,9 +47,10 @@ public enum DirectoryScanner {
                     continue
                 }
                 guard values.isRegularFile == true,
-                      LocalMediaPath.videoExtensions.contains(file.pathExtension.lowercased()),
-                      file.path.hasPrefix(base.path + "/") else { continue }
-                let relative = String(file.path.dropFirst(base.path.count + 1))
+                      LocalMediaPath.videoExtensions.contains(file.pathExtension.lowercased()) else { continue }
+                let filePath = file.standardizedFileURL.resolvingSymlinksInPath().path
+                guard filePath.hasPrefix(prefix) else { continue }
+                let relative = String(filePath.dropFirst(prefix.count))
                 items.append(VideoItem(sourceID: sourceID, relativePath: relative,
                                        byteCount: Int64(values.fileSize ?? 0),
                                        modifiedAt: values.contentModificationDate ?? .distantPast))

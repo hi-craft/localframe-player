@@ -44,7 +44,8 @@ final class LibraryTests: XCTestCase {
         try manager.createSymbolicLink(at: root.appendingPathComponent("shortcut.mp4"),
                                        withDestinationURL: root.appendingPathComponent("1.MP4"))
         let result = try DirectoryScanner.scan(sourceID: source, root: root)
-        XCTAssertEqual(Set(result.videos.map(\.relativePath)), ["1.MP4", "season/2.mkv"])
+        XCTAssertEqual(Set(result.videos.map(\.relativePath)), ["1.MP4", "season/2.mkv"],
+                       "root=\(root.path), canonical=\(LocalMediaPath.directoryPath(root)), errors=\(result.unreadableCount), cloud=\(result.excludedCloudCount)")
         XCTAssertThrowsError(try LocalMediaPath.resolve("shortcut.mp4", under: root))
     }
 
