@@ -25,6 +25,22 @@ final class LibraryTests: XCTestCase {
             sourceOrder: [source], keepUnseen: true), scanned + [video("old.mp4")])
     }
 
+    func testFolderBrowsingPreservesOrderAndDirectoryBoundaries() {
+        let otherRoot = UUID()
+        let items = [video("root.mp4"), video("Season 10/ten.mp4"), video("Season 1/deep/two.mkv"),
+                     video("Season 1/one.mp4"), video("Season 1/deep/three.mp4"),
+                     VideoItem(sourceID: otherRoot, relativePath: "Season 1/foreign.mp4", byteCount: 1, modifiedAt: .distantPast)]
+        let root = FolderListing(sourceID: source, items: items)
+        XCTAssertEqual(root.folders.map(\.path), ["Season 10", "Season 1"])
+        XCTAssertEqual(root.folders.map(\.videoCount), [1, 3])
+        XCTAssertEqual(root.videos.map(\.relativePath), ["root.mp4"])
+        let season = FolderListing(sourceID: source, path: "Season 1", items: items)
+        XCTAssertEqual(season.folders.map(\.path), ["Season 1/deep"])
+        XCTAssertEqual(season.videos.map(\.relativePath), ["Season 1/one.mp4"])
+        XCTAssertEqual(season.descendants.map(\.relativePath), ["Season 1/deep/two.mkv", "Season 1/one.mp4", "Season 1/deep/three.mp4"])
+        XCTAssertTrue(FolderListing(sourceID: source, path: "missing", items: items).descendants.isEmpty)
+    }
+
     func testAdvancingPlaybackClearsBufferingUntilItActuallyStalls() {
         var activity = PlaybackActivity()
         XCTAssertFalse(activity.hasRecentProgress(at: 1))
@@ -69,10 +85,18 @@ final class LibraryTests: XCTestCase {
         try manager.createSymbolicLink(at: root.appendingPathComponent("shortcut.mp4"),
                                        withDestinationURL: root.appendingPathComponent("1.MP4"))
         try manager.createSymbolicLink(at: root.appendingPathComponent("season/deep/cycle"), withDestinationURL: root)
-        let result = try DirectoryScanner.scan(sourceID: source, root: root)
+        var progress: [DirectoryScanProgress] = []
+        let result = try DirectoryScanner.scan(sourceID: source, root: root, onProgress: { progress.append($0) })
         XCTAssertEqual(Set(result.videos.map(\.relativePath)), ["1.MP4", "season/2.mkv", "season/deep/3.mov"],
                        "root=\(root.path), canonical=\(LocalMediaPath.directoryPath(root)), errors=\(result.unreadableCount), cloud=\(result.excludedCloudCount)")
         XCTAssertThrowsError(try LocalMediaPath.resolve("shortcut.mp4", under: root))
+        XCTAssertEqual(progress.first?.inspectedItemCount, 0)
+        XCTAssertEqual(progress.last?.videoCount, result.videos.count)
+        XCTAssertEqual(progress.last?.inspectedItemCount, result.inspectedItemCount)
+        XCTAssertGreaterThan(result.inspectedItemCount, result.videos.count)
+        XCTAssertTrue(zip(progress, progress.dropFirst()).allSatisfy {
+            $0.inspectedItemCount <= $1.inspectedItemCount && $0.videoCount <= $1.videoCount
+        })
     }
 
     func testFailedOrCancelledScansDoNotReturnEmptySuccess() {

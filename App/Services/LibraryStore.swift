@@ -3,12 +3,15 @@ import Combine
 import LocalLibraryCore
 
 enum SourceStatus: Equatable {
-    case checking, ready, offline(String)
-    var isAvailable: Bool { if case .ready = self { return true }; return false }
+    case checking, ready, partial(Int), offline(String)
+    var isAvailable: Bool {
+        switch self { case .ready, .partial: return true; default: return false }
+    }
     var description: String {
         switch self {
         case .checking: return "检查中"
         case .ready: return "可用"
+        case .partial(let count): return "\(count) 个位置暂不可读，旧索引已保留"
         case .offline(let reason): return reason
         }
     }
@@ -20,6 +23,18 @@ private struct SourceScan: Sendable {
     let path: String
 }
 
+struct LibraryReadingProgress {
+    var rebuilding = false
+    var totalSources = 0
+    var completedSources = 0
+    var offlineSources = 0
+    var inspectedItems = 0
+    var foundVideos = 0
+    var sourceID: UUID?
+    var sourceName = ""
+    var relativeDirectory = ""
+}
+
 @MainActor final class LibraryStore: ObservableObject {
     @Published private(set) var sources: [FolderSource] = []
     @Published private(set) var videos: [VideoItem] = []
@@ -27,13 +42,17 @@ private struct SourceScan: Sendable {
     @Published private(set) var isLoading = true
     @Published private(set) var isScanning = false
     @Published private(set) var scanDescription = ""
+    @Published private(set) var readingProgress = LibraryReadingProgress()
     @Published var notice: String?
-    private let disk = LibraryDiskStore()
+    private let disk: LibraryDiskStore
     private var revision = 0
     private var scanGeneration = UUID()
     private var scanTask: Task<Void, Never>?
 
-    init() { Task { await restore() } }
+    init(disk: LibraryDiskStore = LibraryDiskStore()) {
+        self.disk = disk
+        Task { await restore() }
+    }
 
     private func restore() async {
         do {
@@ -126,22 +145,36 @@ private struct SourceScan: Sendable {
         statuses[sourceID] = .offline(reason)
     }
 
-    func refresh(restart: Bool = false) {
+    func refresh(restart: Bool = false, rebuilding: Bool = false) {
         guard !isLoading, !isScanning || restart else { return }
         scanTask?.cancel()
         let generation = UUID()
         scanGeneration = generation
         let selectedSources = sources
         isScanning = !selectedSources.isEmpty
+        readingProgress = LibraryReadingProgress(rebuilding: rebuilding, totalSources: selectedSources.count)
         scanTask = Task {
             for source in selectedSources {
                 guard !Task.isCancelled, generation == scanGeneration else { return }
-                scanDescription = "正在扫描 \(source.name)"
+                scanDescription = "\(rebuilding ? "正在重建" : "正在读取") \(source.name)"
+                readingProgress.sourceID = source.id
+                readingProgress.sourceName = source.name
+                readingProgress.relativeDirectory = ""
+                let inspectedBeforeSource = readingProgress.inspectedItems
+                let videosBeforeSource = readingProgress.foundVideos
                 let worker = Task.detached(priority: .utility) { () throws -> SourceScan in
                     let lease = try FolderLease(source: source)
                     return try CoordinatedRead.perform(at: lease.url) { directory in
                         let result = try DirectoryScanner.scan(sourceID: source.id, root: directory,
-                                                              isCancelled: { Task.isCancelled })
+                            isCancelled: { Task.isCancelled }, onProgress: { progress in
+                                Task { @MainActor [weak self] in
+                                    guard let self, self.isScanning, self.scanGeneration == generation,
+                                          self.readingProgress.sourceID == source.id else { return }
+                                    self.readingProgress.inspectedItems = inspectedBeforeSource + progress.inspectedItemCount
+                                    self.readingProgress.foundVideos = videosBeforeSource + progress.videoCount
+                                    self.readingProgress.relativeDirectory = progress.relativeDirectory
+                                }
+                            })
                         return SourceScan(scan: result, bookmark: lease.refreshedBookmark, path: lease.url.path)
                     }
                 }
@@ -157,9 +190,15 @@ private struct SourceScan: Sendable {
                         // Preserve unverified old entries on partial I/O failure; update every successfully seen file.
                         notice = "\(source.name)：\(result.scan.unreadableCount) 个位置暂时无法读取，保留未确认的旧索引。"
                     }
-                    videos = LibraryReadOrder.merging(result.scan.videos, sourceID: source.id, into: videos,
+                    // Build a fresh index for readable roots, then replace atomically.
+                    // A failed/partial read must not erase the last known offline entries.
+                    let previous = rebuilding && result.scan.unreadableCount == 0
+                        ? videos.filter { $0.sourceID != source.id } : videos
+                    videos = LibraryReadOrder.merging(result.scan.videos, sourceID: source.id, into: previous,
                         sourceOrder: sources.map(\.id), keepUnseen: result.scan.unreadableCount > 0)
-                    statuses[source.id] = .ready
+                    statuses[source.id] = result.scan.unreadableCount > 0 ? .partial(result.scan.unreadableCount) : .ready
+                    readingProgress.inspectedItems = inspectedBeforeSource + result.scan.inspectedItemCount
+                    readingProgress.foundVideos = videosBeforeSource + result.scan.videos.count
                     if result.scan.excludedCloudCount > 0 {
                         notice = "已跳过 \(result.scan.excludedCloudCount) 个云端项目。仅扫描本地视频。"
                     }
@@ -167,7 +206,10 @@ private struct SourceScan: Sendable {
                 } catch {
                     guard !Task.isCancelled, generation == scanGeneration else { return }
                     statuses[source.id] = .offline("未连接或需要重新授权")
+                    readingProgress.offlineSources += 1
                 }
+                readingProgress.completedSources += 1
+                readingProgress.sourceID = nil
             }
             guard generation == scanGeneration else { return }
             scanDescription = ""
@@ -175,8 +217,8 @@ private struct SourceScan: Sendable {
         }
     }
 
-    func refreshAndWait() async {
-        refresh()
+    func refreshAndWait(rebuilding: Bool = false) async {
+        refresh(restart: rebuilding, rebuilding: rebuilding)
         await scanTask?.value
     }
 

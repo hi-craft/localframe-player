@@ -40,8 +40,8 @@ for family in ("iPhone", "iPad"):
                 result = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=False)
             if result.returncode:
                 print((ROOT / "build/playback-tests.log").read_text()[-18000:])
-                raise RuntimeError("Native playback/first-frame tests failed; inspect playback-tests.log")
-            print("Native MP4/MKV first-frame, cancellation, remote-input rejection and playback tests passed.")
+                raise RuntimeError("Native playback/library/UI tests failed; inspect playback-tests.log")
+            print("Native playback, offline library recovery and UI interaction tests passed.")
         run("xcrun", "simctl", "install", identifier, str(APP))
         result = run("xcrun", "simctl", "launch", identifier, "com.localframe.player")
         if "com.localframe.player:" not in result:

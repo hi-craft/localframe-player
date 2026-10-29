@@ -15,6 +15,35 @@ final class PlaybackTests: XCTestCase {
         try await verifyFirstFrame("mkv")
     }
 
+    func testTimelinePreviewSeeksToBlueFrameInMP4AndMKV() async throws {
+        for format in ["mp4", "mkv"] {
+            let url = try fixture(format)
+            let result = await Task.detached {
+                LPFirstFrameDecoder.image(fileURL: url, seconds: 1.5,
+                    cancellation: LPFrameCancellation(), maximumSize: CGSize(width: 320, height: 180))
+            }.value
+            let image = try XCTUnwrap(result?.cgImage, format)
+            let pixel = try averagePixel(image)
+            XCTAssertGreaterThan(Int(pixel[2]), 180, "Preview at 1.5s must be blue in \(format), not the red opening frame")
+            XCTAssertLessThan(Int(pixel[0]), 70)
+            XCTAssertLessThan(Int(pixel[1]), 70)
+        }
+    }
+
+
+    func testFeaturedCoverUsesBoundedLargerOpeningFrame() async throws {
+        let url = try XCTUnwrap(Bundle(for: PlaybackTests.self).url(forResource: "first-frame-large", withExtension: "mp4"))
+        let result = await Task.detached {
+            LPFirstFrameDecoder.image(fileURL: url, cancellation: LPFrameCancellation(), maximumSize: CGSize(width: 1920, height: 1080))
+        }.value
+        let image = try XCTUnwrap(result?.cgImage)
+        XCTAssertGreaterThan(image.width, 320)
+        XCTAssertGreaterThan(image.height, 180)
+        XCTAssertLessThanOrEqual(image.width, 960)
+        XCTAssertLessThanOrEqual(image.height, 540)
+        try verifyRed(image)
+    }
+
     private func verifyFirstFrame(_ extensionName: String) async throws {
         let url = try fixture(extensionName)
         let result = await Task.detached {
@@ -23,6 +52,18 @@ final class PlaybackTests: XCTestCase {
         let image = try XCTUnwrap(result?.cgImage)
         XCTAssertLessThanOrEqual(image.width, 320)
         XCTAssertLessThanOrEqual(image.height, 180)
+        try verifyRed(image)
+    }
+
+    private func verifyRed(_ image: CGImage) throws {
+        let pixel = try averagePixel(image)
+        // The second half is blue: this also rejects a thumbnail taken from the middle/end.
+        XCTAssertGreaterThan(Int(pixel[0]), 180, "Opening frame must be red")
+        XCTAssertLessThan(Int(pixel[1]), 70)
+        XCTAssertLessThan(Int(pixel[2]), 70)
+    }
+
+    private func averagePixel(_ image: CGImage) throws -> [UInt8] {
         var pixel: [UInt8] = [0, 0, 0, 0]
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let info = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
@@ -31,10 +72,7 @@ final class PlaybackTests: XCTestCase {
                 bytesPerRow: 4, space: colorSpace, bitmapInfo: info))
             context.draw(image, in: CGRect(x: 0, y: 0, width: 1, height: 1))
         }
-        // The second half is blue: this also rejects a thumbnail taken from the middle/end.
-        XCTAssertGreaterThan(Int(pixel[0]), 180, "Opening frame must be red")
-        XCTAssertLessThan(Int(pixel[1]), 70)
-        XCTAssertLessThan(Int(pixel[2]), 70)
+        return pixel
     }
 
     func testCancelledAndRemoteThumbnailRequestsAreRejected() async throws {

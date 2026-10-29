@@ -12,6 +12,8 @@ private final class DecodeCancellation: @unchecked Sendable {
     private struct Request {
         let item: VideoItem
         let source: FolderSource
+        let allowDecode: Bool
+        let featured: Bool
         let continuation: CheckedContinuation<UIImage?, Never>
     }
     private let memory = NSCache<NSString, UIImage>()
@@ -36,14 +38,14 @@ private final class DecodeCancellation: @unchecked Sendable {
 
     deinit { if let memoryObserver { NotificationCenter.default.removeObserver(memoryObserver) } }
 
-    func image(for item: VideoItem, source: FolderSource) async -> UIImage? {
-        let key = ThumbnailDiskCache.key(for: item)
+    func image(for item: VideoItem, source: FolderSource, allowDecode: Bool = true, featured: Bool = false) async -> UIImage? {
+        let key = ThumbnailDiskCache.key(for: item, featured: featured)
         if let image = memory.object(forKey: key as NSString) { return image }
         let id = UUID()
         return await withTaskCancellationHandler(operation: {
             guard !Task.isCancelled else { return nil }
             return await withCheckedContinuation { continuation in
-                requests[id] = Request(item: item, source: source, continuation: continuation)
+                requests[id] = Request(item: item, source: source, allowDecode: allowDecode, featured: featured, continuation: continuation)
                 pending.append(id)
                 pump()
             }
@@ -68,17 +70,18 @@ private final class DecodeCancellation: @unchecked Sendable {
             activeID = id
             let cancellation = DecodeCancellation()
             activeCancellation = cancellation
-            let key = ThumbnailDiskCache.key(for: request.item)
+            let key = ThumbnailDiskCache.key(for: request.item, featured: request.featured)
             activeTask = Task {
                 var image: UIImage?
                 if let data = await disk.load(key), !Task.isCancelled { image = UIImage(data: data) }
-                if image == nil && !Task.isCancelled {
+                if image == nil && request.allowDecode && !Task.isCancelled {
                     let worker = Task.detached(priority: .utility) { () -> UIImage? in
                         do {
                             let lease = try FolderLease(source: request.source)
                             return try CoordinatedRead.perform(at: lease.url) { _ in
                                 let url = try lease.fileURL(for: request.item)
-                                return LPFirstFrameDecoder.image(fileURL: url, cancellation: cancellation.token)
+                                return LPFirstFrameDecoder.image(fileURL: url, cancellation: cancellation.token,
+                                    maximumSize: request.featured ? CGSize(width: 960, height: 540) : CGSize(width: 320, height: 180))
                             }
                         } catch { return nil }
                     }

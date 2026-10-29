@@ -15,3 +15,4 @@ vendor/
 *.xcresult/
 Tests/Fixtures/
 Vendor/
+UITests/Fixtures/
