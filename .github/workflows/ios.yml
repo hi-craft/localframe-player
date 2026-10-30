@@ -85,5 +85,6 @@ jobs:
           path: |
             build/*.log
             build/*.png
+            build/ui-test-failures/
           if-no-files-found: ignore
           retention-days: 14

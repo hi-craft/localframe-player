@@ -40,6 +40,12 @@ for family in ("iPhone", "iPad"):
                 result = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=False)
             if result.returncode:
                 print((ROOT / "build/playback-tests.log").read_text()[-18000:])
+                bundles = sorted((ROOT / "build/simulator/Logs/Test").glob("*.xcresult"),
+                                 key=lambda path: path.stat().st_mtime)
+                if bundles:
+                    subprocess.run(["xcrun", "xcresulttool", "export", "attachments", "--only-failures",
+                                    "--path", str(bundles[-1]),
+                                    "--output-path", str(ROOT / "build/ui-test-failures")], check=False)
                 raise RuntimeError("Native playback/library/UI tests failed; inspect playback-tests.log")
             print("Native playback, offline library recovery and UI interaction tests passed.")
         run("xcrun", "simctl", "install", identifier, str(APP))

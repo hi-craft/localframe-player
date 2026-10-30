@@ -10,6 +10,7 @@ final class LibraryPlaybackUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         if name.contains("testFullscreenPlaylistDrawer") { app.launchArguments.append("-ui-testing-long-title") }
+        if name.contains("testLargeLibrary") { app.launchArguments.append("-ui-testing-large-library") }
         app.launch()
         XCTAssertTrue(app.buttons["tab.folders"].waitForExistence(timeout: 10))
         app.buttons["tab.folders"].tap()
@@ -104,7 +105,11 @@ final class LibraryPlaybackUITests: XCTestCase {
         slider.coordinate(withNormalizedOffset: CGVector(dx: 0.30, dy: 0.5))
             .press(forDuration: 2, thenDragTo: slider.coordinate(withNormalizedOffset: CGVector(dx: 0.60, dy: 0.5)),
                    withVelocity: .slow, thenHoldForDuration: 2)
-        expectation(for: NSPredicate { _, _ in abs(self.progressSeconds(slider) - 27) < 2.5 }, evaluatedWith: slider)
+        expectation(for: NSPredicate { _, _ in
+            let actual = self.progressSeconds(slider)
+            print("PAUSED_DRAG_PROGRESS_SECONDS: \(actual), raw: \(slider.value ?? "nil")")
+            return abs(actual - 27) < 2.5
+        }, evaluatedWith: slider)
         waitForExpectations(timeout: 5)
         XCTAssertTrue(app.buttons["播放"].exists, "Seeking must preserve paused state")
         let previewGone = app.staticTexts["playback.preview.time"].waitForNonExistence(timeout: 3)
@@ -265,6 +270,114 @@ final class LibraryPlaybackUITests: XCTestCase {
         XCTAssertTrue(app.buttons["video.开场.mp4"].waitForExistence(timeout: 5))
         XCUIDevice.shared.orientation = .landscapeLeft
         waitForPortrait(true)
+    }
+
+    func testFullscreenAutoAdvanceThroughFinalVideoCanCloseAndPlayAgain() {
+        app.buttons["tab.categories"].tap()
+        app.buttons["category.available"].tap()
+        app.buttons["video.开场.mp4"].tap()
+        XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 15))
+        app.buttons["全屏播放"].tap()
+        if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(false) }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        waitForPortrait(false)
+
+        // Seek near the end, then let VLC deliver each real end-of-media event.
+        // A manual next/close while paused does not exercise this regression.
+        for nextTitle in ["片段二.mp4", "片段三.mp4"] {
+            revealControls()
+            app.sliders["playback.progress"].adjust(toNormalizedSliderPosition: 0.92)
+            XCTAssertTrue(app.staticTexts[nextTitle].waitForExistence(timeout: 15),
+                          "Playback must automatically advance to \(nextTitle)")
+            XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 10))
+        }
+        revealControls()
+        XCTAssertFalse(app.buttons["下一个视频"].isEnabled)
+        app.sliders["playback.progress"].adjust(toNormalizedSliderPosition: 0.92)
+        XCTAssertTrue(app.buttons["播放"].waitForExistence(timeout: 15),
+                      "The final video must finish before closing")
+        XCTAssertGreaterThan(progressSeconds(app.sliders["playback.progress"]), 43)
+        app.buttons["返回资料库"].tap()
+        if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(true) }
+        XCTAssertTrue(app.buttons["video.开场.mp4"].waitForExistence(timeout: 8))
+        app.buttons["tab.settings"].tap()
+        XCTAssertTrue(app.staticTexts["settings.version"].waitForExistence(timeout: 5),
+                      "The library must remain responsive after closing an ended queue")
+        app.buttons["tab.categories"].tap()
+        app.buttons["video.开场.mp4"].tap()
+        XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 15),
+                      "A fresh playback session must still start")
+    }
+
+    func testLargeLibraryFinalEpisodeCloseAndCachedRelaunch() {
+        app.buttons["source.本机测试"].tap()
+        let folder = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "folder.第")).firstMatch
+        XCTAssertTrue(folder.waitForExistence(timeout: 10))
+        let path = String(folder.identifier.dropFirst("folder.".count))
+        folder.tap()
+        let video = app.buttons["video.\(path)/视频028.mp4"]
+        for _ in 0..<8 where !video.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(video.isHittable)
+        // iOS 26's floating search field can overlap the bottom card's center.
+        video.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
+        XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 15))
+        app.buttons["全屏播放"].tap()
+        if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(false) }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        waitForPortrait(false)
+        for title in ["视频029.mp4", "视频030.mp4"] {
+            revealControls()
+            app.sliders["playback.progress"].adjust(toNormalizedSliderPosition: 0.92)
+            XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 15))
+            XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 10))
+        }
+        revealControls()
+        XCTAssertFalse(app.buttons["下一个视频"].isEnabled)
+        app.sliders["playback.progress"].adjust(toNormalizedSliderPosition: 0.92)
+        XCTAssertTrue(app.buttons["播放"].waitForExistence(timeout: 15))
+        app.buttons["返回资料库"].tap()
+        if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(true) }
+        XCTAssertTrue(video.waitForExistence(timeout: 8))
+        app.buttons["tab.settings"].tap()
+        XCTAssertTrue(app.staticTexts["settings.version"].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launchArguments = ["-ui-testing", "-ui-testing-reuse-library"]
+        let launchStarted = Date()
+        app.launch()
+        app.buttons["tab.folders"].tap()
+        let source = app.buttons["source.本机测试"]
+        XCTAssertTrue(source.waitForExistence(timeout: 10))
+        expectation(for: NSPredicate(format: "label CONTAINS %@", "本地"), evaluatedWith: source)
+        waitForExpectations(timeout: 10)
+        print("CACHED_3000_LAUNCH_TO_READY_SECONDS: \(Date().timeIntervalSince(launchStarted))")
+        XCTAssertTrue(source.label.replacingOccurrences(of: ",", with: "").contains("3000"))
+    }
+
+    func testLargeLibraryRootQueueCanCloseAfterFinalEpisode() {
+        app.terminate()
+        app.launchArguments = ["-ui-testing", "-ui-testing-reuse-library", "-ui-testing-large-queue-tail"]
+        app.launch()
+        XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["3000 部视频"].exists)
+        app.buttons["全屏播放"].tap()
+        if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(false) }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        waitForPortrait(false)
+        for title in ["视频029.mp4", "视频030.mp4"] {
+            revealControls()
+            app.sliders["playback.progress"].adjust(toNormalizedSliderPosition: 0.92)
+            XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 15))
+            XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 10))
+        }
+        revealControls()
+        XCTAssertFalse(app.buttons["下一个视频"].isEnabled)
+        app.sliders["playback.progress"].adjust(toNormalizedSliderPosition: 0.92)
+        XCTAssertTrue(app.buttons["播放"].waitForExistence(timeout: 15))
+        app.buttons["返回资料库"].tap()
+        if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(true) }
+        XCTAssertTrue(app.buttons["tab.settings"].waitForExistence(timeout: 8))
+        app.buttons["tab.settings"].tap()
+        XCTAssertTrue(app.staticTexts["settings.version"].waitForExistence(timeout: 5))
     }
 
     func testThreeLevelFoldersAndOfflineIndexRemainBrowseable() {

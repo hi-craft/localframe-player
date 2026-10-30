@@ -20,4 +20,6 @@ ffmpeg -hide_banner -loglevel error -y \
 
 # Long enough for real hide/reveal, rotation and background UI interactions.
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=s=320x180:r=15:d=45' \
-  -c:v libx264 -preset ultrafast -crf 30 -pix_fmt yuv420p -movflags +faststart UITests/Fixtures/ui-preview.mp4
+  -f lavfi -i 'anullsrc=r=48000:cl=stereo' -t 45 \
+  -c:v libx264 -preset ultrafast -crf 30 -pix_fmt yuv420p -c:a aac -b:a 64k \
+  -movflags +faststart UITests/Fixtures/ui-preview.mp4

@@ -23,6 +23,11 @@ private struct SourceScan: Sendable {
     let path: String
 }
 
+private struct SourceAccess: Sendable {
+    let bookmark: Data?
+    let path: String
+}
+
 struct LibraryReadingProgress {
     var rebuilding = false
     var totalSources = 0
@@ -48,6 +53,9 @@ struct LibraryReadingProgress {
     private var revision = 0
     private var scanGeneration = UUID()
     private var scanTask: Task<Void, Never>?
+    private var indexedSourceIDs = Set<UUID>()
+    private var accessGeneration = UUID()
+    private var accessTask: Task<Void, Never>?
 
     init(disk: LibraryDiskStore = LibraryDiskStore()) {
         self.disk = disk
@@ -59,12 +67,67 @@ struct LibraryReadingProgress {
             let saved = try await disk.load()
             sources = saved.sources
             videos = saved.videos
+            indexedSourceIDs = Set(saved.indexedSourceIDs ?? saved.videos.map(\.sourceID))
             for source in sources { statuses[source.id] = .checking }
+            startAccessCheck()
+            await accessTask?.value
         } catch {
             notice = "无法读取本地索引：\(error.localizedDescription)。可以重新添加目录。"
         }
         isLoading = false
-        refresh()
+        let missing = Set(sources.map(\.id)).subtracting(indexedSourceIDs)
+        if !missing.isEmpty { refresh(sourceIDs: missing) }
+    }
+
+    /// Startup and foregrounding validate roots only; enumerating thousands of
+    /// descendants is reserved for an explicit refresh or a newly added root.
+    func checkAvailability() {
+        guard !isLoading, !isScanning else { return }
+        startAccessCheck()
+    }
+
+    func checkAvailabilityAndWait() async {
+        checkAvailability()
+        await accessTask?.value
+    }
+
+    private func startAccessCheck() {
+        accessTask?.cancel()
+        let generation = UUID()
+        accessGeneration = generation
+        let selectedSources = sources
+        accessTask = Task {
+            var bookmarkChanged = false
+            for source in selectedSources {
+                guard !Task.isCancelled, generation == accessGeneration else { return }
+                let worker = Task.detached(priority: .utility) { () throws -> SourceAccess in
+                    let lease = try FolderLease(source: source)
+                    let values = try lease.url.resourceValues(forKeys: [.isDirectoryKey])
+                    guard values.isDirectory == true,
+                          FileManager.default.isReadableFile(atPath: lease.url.path) else { throw LibraryFailure.unavailable }
+                    return SourceAccess(bookmark: lease.refreshedBookmark, path: lease.url.path)
+                }
+                do {
+                    let result = try await withTaskCancellationHandler(operation: { try await worker.value },
+                                                                      onCancel: { worker.cancel() })
+                    guard !Task.isCancelled, generation == accessGeneration,
+                          let index = sources.firstIndex(where: { $0.id == source.id }) else { return }
+                    if sources[index].lastKnownPath != result.path {
+                        sources[index].lastKnownPath = result.path
+                        bookmarkChanged = true
+                    }
+                    if let bookmark = result.bookmark {
+                        sources[index].bookmark = bookmark
+                        bookmarkChanged = true
+                    }
+                    if case .partial = statuses[source.id] {} else { statuses[source.id] = .ready }
+                } catch {
+                    guard !Task.isCancelled, generation == accessGeneration else { return }
+                    statuses[source.id] = .offline("未连接或需要重新授权")
+                }
+            }
+            if bookmarkChanged { persist() }
+        }
     }
 
     func source(for item: VideoItem) -> FolderSource? { sources.first { $0.id == item.sourceID } }
@@ -112,6 +175,7 @@ struct LibraryReadingProgress {
                         }
                         sources[index] = FolderSource(id: replacementID, name: source.name,
                             bookmark: source.bookmark, lastKnownPath: source.lastKnownPath)
+                        indexedSourceIDs.remove(replacementID)
                         statuses[replacementID] = .checking
                     // Re-selecting the exact same directory repairs an expired bookmark without losing its ID.
                     } else if let index = sources.firstIndex(where: { $0.lastKnownPath == source.lastKnownPath }) {
@@ -137,6 +201,7 @@ struct LibraryReadingProgress {
         sources.removeAll { $0.id == source.id }
         videos.removeAll { $0.sourceID == source.id }
         statuses[source.id] = nil
+        indexedSourceIDs.remove(source.id)
         persist()
         refresh(restart: true)
     }
@@ -145,12 +210,14 @@ struct LibraryReadingProgress {
         statuses[sourceID] = .offline(reason)
     }
 
-    func refresh(restart: Bool = false, rebuilding: Bool = false) {
+    func refresh(restart: Bool = false, rebuilding: Bool = false, sourceIDs: Set<UUID>? = nil) {
         guard !isLoading, !isScanning || restart else { return }
         scanTask?.cancel()
+        accessTask?.cancel()
+        accessGeneration = UUID()
         let generation = UUID()
         scanGeneration = generation
-        let selectedSources = sources
+        let selectedSources = sources.filter { sourceIDs?.contains($0.id) ?? true }
         isScanning = !selectedSources.isEmpty
         readingProgress = LibraryReadingProgress(rebuilding: rebuilding, totalSources: selectedSources.count)
         scanTask = Task {
@@ -197,6 +264,7 @@ struct LibraryReadingProgress {
                     videos = LibraryReadOrder.merging(result.scan.videos, sourceID: source.id, into: previous,
                         sourceOrder: sources.map(\.id), keepUnseen: result.scan.unreadableCount > 0)
                     statuses[source.id] = result.scan.unreadableCount > 0 ? .partial(result.scan.unreadableCount) : .ready
+                    indexedSourceIDs.insert(source.id)
                     readingProgress.inspectedItems = inspectedBeforeSource + result.scan.inspectedItemCount
                     readingProgress.foundVideos = videosBeforeSource + result.scan.videos.count
                     if result.scan.excludedCloudCount > 0 {
@@ -225,7 +293,8 @@ struct LibraryReadingProgress {
     private func persist() {
         revision += 1
         let currentRevision = revision
-        let snapshot = LibrarySnapshot(sources: sources, videos: videos)
+        let snapshot = LibrarySnapshot(sources: sources, videos: videos,
+                                       indexedSourceIDs: sources.map(\.id).filter { indexedSourceIDs.contains($0) })
         Task {
             do { try await disk.save(snapshot, revision: currentRevision) }
             catch { notice = "索引保存失败：\(error.localizedDescription)" }

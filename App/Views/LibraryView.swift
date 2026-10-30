@@ -8,7 +8,7 @@ private enum LibraryRoute: Hashable {
 
 struct LibraryView: View {
     @ObservedObject var library: LibraryStore
-    @ObservedObject var player: PlayerController
+    let player: PlayerController
     @ObservedObject var thumbnails: ThumbnailService
     let volume: SystemVolume
     @Environment(\.scenePhase) private var scenePhase
@@ -75,8 +75,19 @@ struct LibraryView: View {
             .onAppear { OrientationPolicy.shared.showLibrary() }
             .onChange(of: scenePhase) { _, phase in
                 player.setAppActive(phase == .active)
-                if phase == .active { library.refresh() }
+                if phase == .active { library.checkAvailability() }
             }
+            #if DEBUG
+            .onChange(of: library.isLoading, initial: true) { _, loading in
+                // Start near the end of the real 3000-item queue without thousands
+                // of automation swipes. Release builds never expose this entry.
+                if !loading, ProcessInfo.processInfo.arguments.contains("-ui-testing-large-queue-tail"),
+                   let item = library.videos.first(where: { $0.relativePath == "第100组/视频028.mp4" }),
+                   let source = library.source(for: item) {
+                    play(item, items(source))
+                }
+            }
+            #endif
         }
     }
 

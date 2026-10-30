@@ -3,6 +3,83 @@ import LocalLibraryCore
 @testable import LocalFrame
 
 final class LibraryStoreTests: XCTestCase {
+    @MainActor func testRestoring3000CachedVideosDoesNotRecursivelyRescan() async throws {
+        let manager = FileManager.default
+        let base = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let root = base.appendingPathComponent("library")
+        try manager.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: base) }
+        let source = FolderSource(name: "3000 videos", bookmark: try root.bookmarkData(options: [.minimalBookmark]), lastKnownPath: root.path)
+        var cached: [VideoItem] = []
+        for group in 1...100 {
+            let folder = root.appendingPathComponent(String(format: "%03d", group))
+            try manager.createDirectory(at: folder, withIntermediateDirectories: true)
+            for clip in 1...30 {
+                let relative = String(format: "%03d/%03d.mp4", group, clip)
+                let file = root.appendingPathComponent(relative)
+                try Data([1]).write(to: file)
+                let modifiedAt = try file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate ?? .distantPast
+                cached.append(VideoItem(sourceID: source.id, relativePath: relative, byteCount: 1, modifiedAt: modifiedAt))
+            }
+        }
+        let disk = LibraryDiskStore(url: base.appendingPathComponent("index.json"))
+        try await disk.save(LibrarySnapshot(sources: [source], videos: cached), revision: 0)
+        // A directory change must be discovered only when the user requests a refresh.
+        try Data([2]).write(to: root.appendingPathComponent("new.mp4"))
+        let restoreStarted = Date()
+        let store = LibraryStore(disk: disk)
+        for _ in 0..<500 {
+            if !store.isLoading && !store.isScanning { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertFalse(store.isLoading)
+        XCTAssertFalse(store.isScanning)
+        print("CACHED_3000_RESTORE_SECONDS: \(Date().timeIntervalSince(restoreStarted))")
+        XCTAssertEqual(store.statuses[source.id], .ready)
+        XCTAssertTrue(store.videos == cached, "A cached launch must not enumerate or reorder 3000 files")
+        await store.checkAvailabilityAndWait()
+        XCTAssertTrue(store.videos == cached, "Foreground validation must not start another full scan")
+        await store.refreshAndWait(rebuilding: true)
+        XCTAssertEqual(store.videos.count, 3001, "An explicit refresh must still rebuild the index")
+        XCTAssertTrue(store.videos.contains { $0.relativePath == "new.mp4" })
+        try manager.removeItem(at: root)
+        await store.checkAvailabilityAndWait()
+        if case .offline = store.statuses[source.id] {} else { XCTFail("Disconnected roots must still be marked offline") }
+        XCTAssertEqual(store.videos.count, 3001, "An unavailable root must retain its saved index")
+    }
+
+    @MainActor func testIndexedEmptyRootDoesNotRescanOnNextLaunch() async throws {
+        let manager = FileManager.default
+        let base = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let root = base.appendingPathComponent("empty")
+        try manager.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: base) }
+        let source = FolderSource(name: "Empty", bookmark: try root.bookmarkData(options: [.minimalBookmark]), lastKnownPath: root.path)
+        let disk = LibraryDiskStore(url: base.appendingPathComponent("index.json"))
+        try await disk.save(LibrarySnapshot(sources: [source]), revision: 0)
+        let store = LibraryStore(disk: disk)
+        for _ in 0..<300 {
+            if !store.isLoading && !store.isScanning { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        for _ in 0..<100 {
+            if try await disk.load().indexedSourceIDs?.contains(source.id) == true { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let saved = try await disk.load()
+        XCTAssertEqual(saved.indexedSourceIDs, [source.id])
+        try Data([1]).write(to: root.appendingPathComponent("new.mp4"))
+        let restored = LibraryStore(disk: disk)
+        for _ in 0..<300 {
+            if !restored.isLoading && !restored.isScanning { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertTrue(restored.videos.isEmpty, "A successfully indexed empty root is still a valid cache")
+        XCTAssertEqual(restored.statuses[source.id], .ready)
+        await restored.refreshAndWait(rebuilding: true)
+        XCTAssertEqual(restored.videos.map(\.relativePath), ["new.mp4"])
+    }
+
     @MainActor func testRebuildingRefreshReplacesConnectedIndexAndKeepsOfflineIndex() async throws {
         let manager = FileManager.default
         let base = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
