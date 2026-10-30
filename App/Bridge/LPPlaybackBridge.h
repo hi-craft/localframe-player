@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setPlaybackRate:(float)rate NS_SWIFT_NAME(setRate(_:));
 - (void)seekToSeconds:(double)seconds NS_SWIFT_NAME(seek(seconds:));
 - (void)stopWithCompletion:(void (^)(void))completion NS_SWIFT_NAME(stop(completion:));
+/// Stop and release the audio session on the playback queue; completion returns on main.
+- (void)closeWithCompletion:(void (^)(void))completion NS_SWIFT_NAME(close(completion:));
 @end
 
 NS_ASSUME_NONNULL_END

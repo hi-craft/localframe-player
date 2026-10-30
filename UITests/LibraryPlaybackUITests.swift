@@ -316,11 +316,14 @@ final class LibraryPlaybackUITests: XCTestCase {
         let path = String(folder.identifier.dropFirst("folder.".count))
         folder.tap()
         let video = app.buttons["video.\(path)/视频028.mp4"]
-        for _ in 0..<8 where !video.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        let last = app.buttons["video.\(path)/视频030.mp4"]
+        for _ in 0..<10 where !last.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        app.scrollViews.firstMatch.swipeUp()
         XCTAssertTrue(video.isHittable)
         // iOS 26's floating search field can overlap the bottom card's center.
         video.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
         XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["30 部视频"].exists)
         app.buttons["全屏播放"].tap()
         if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(false) }
         XCUIDevice.shared.orientation = .landscapeLeft
@@ -337,7 +340,9 @@ final class LibraryPlaybackUITests: XCTestCase {
         XCTAssertTrue(app.buttons["播放"].waitForExistence(timeout: 15))
         app.buttons["返回资料库"].tap()
         if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(true) }
-        XCTAssertTrue(video.waitForExistence(timeout: 8))
+        // Rotation can change the lazy grid's scroll offset and evict video 028.
+        // Verify the actual return destination, then perform a new navigation action.
+        XCTAssertTrue(app.navigationBars[path].waitForExistence(timeout: 8))
         app.buttons["tab.settings"].tap()
         XCTAssertTrue(app.staticTexts["settings.version"].waitForExistence(timeout: 5))
         app.terminate()
@@ -358,7 +363,7 @@ final class LibraryPlaybackUITests: XCTestCase {
         app.launchArguments = ["-ui-testing", "-ui-testing-reuse-library", "-ui-testing-large-queue-tail"]
         app.launch()
         XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["3000 部视频"].exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "3,?000 部视频")).firstMatch.exists)
         app.buttons["全屏播放"].tap()
         if UIDevice.current.userInterfaceIdiom == .phone { waitForPortrait(false) }
         XCUIDevice.shared.orientation = .landscapeLeft

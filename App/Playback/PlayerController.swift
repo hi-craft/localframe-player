@@ -186,9 +186,8 @@ private struct PreparedVideo: @unchecked Sendable {
         lease = nil
         engineLoaded = false
         wantsPlayback = false
-        engine.stop {
+        engine.close {
             withExtendedLifetime(previousLease) {}
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
         current = nil
         currentURL = nil

@@ -1,5 +1,6 @@
 #import "LPPlaybackBridge.h"
 #import "LPLibrary.h"
+#import <AVFoundation/AVFoundation.h>
 #include <math.h>
 
 VLCLibrary *LPLocalLibrary(void) {
@@ -97,6 +98,14 @@ VLCLibrary *LPLocalLibrary(void) {
 }
 
 - (void)stopWithCompletion:(void (^)(void))completion {
+    [self stopDeactivatingAudio:NO completion:completion];
+}
+
+- (void)closeWithCompletion:(void (^)(void))completion {
+    [self stopDeactivatingAudio:YES completion:completion];
+}
+
+- (void)stopDeactivatingAudio:(BOOL)deactivateAudio completion:(void (^)(void))completion {
     self.generation += 1;
     self.wantsPlayback = NO;
     dispatch_async(self.engineQueue, ^{
@@ -104,6 +113,13 @@ VLCLibrary *LPLocalLibrary(void) {
         player.delegate = nil;
         [player stop];
         self.player = nil;
+        player = nil;
+        if (deactivateAudio) {
+            // Audio-device teardown can wait on system I/O. Keep it off main and
+            // before the next queued stop/open, so it cannot deactivate a new session.
+            [[AVAudioSession sharedInstance] setActive:NO
+                withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+        }
         dispatch_async(dispatch_get_main_queue(), completion);
     });
 }
