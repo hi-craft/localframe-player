@@ -26,7 +26,13 @@
 
 云端运行 `41032774556` 的 Core、设备包和模拟器编译通过，但执行测试时 Xcode 找不到脚本选中的模拟器，未运行原生 / 界面测试；不记为应用回归通过。模拟器脚本改为从当前 Xcode 实际支持的目标中选择，并保存设备清单和目标清单用于排查。
 
-## 当前开发版本
+## build 13 测试安装包
+
+2026-10-30 打包 **0.2.1 / build 13**，包含上述缓存修复和退出流程加固。ARM64 Release 构建成功；ZIP 完整性、版本、原 Bundle ID、iPhone / iPad 支持和 MobileVLCKit 嵌入通过核对，包内不含 MP4 / MKV 测试素材及签名 / provisioning profile。Core 本次另执行 10 项通过。界面与原生验证使用上述相同功能源码，版本号变更不计作额外一次交互验收。
+
+文件 `VelaPlayer-0.2.1-build13-unsigned.ipa`，**51,437,226 字节**；SHA-256：`5a4a550871bfb32b64b0d70e6b8bd5c6ef57d634e068781ae4ab460a290b5f34`。已传入手机 Vela Player 的 Documents，并通过手机回读核对大小与 SHA-256。传输时读取到已安装 0.2.1 / build 12；新文件仍需 SideStore 签名安装，未完成 build 13 真机 USB 验收。
+
+## 已发布 build 12 基线
 
 2026-10-29 本地 MacBook 验证，当前版本 **0.2.1 / build 12**。分支 `fix/vela-controls-library`，基于 `79d8d3cf61aa3f234cf218faa3e01cfa8865d382`。用户已要求提交代码及上传产物；代码以本分支提交为准，发布产物使用标签 `v0.2.1-build12`。
 

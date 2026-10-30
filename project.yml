@@ -46,7 +46,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.localframe.player
         PRODUCT_NAME: LocalFrame
         MARKETING_VERSION: "0.2.1"
-        CURRENT_PROJECT_VERSION: "12"
+        CURRENT_PROJECT_VERSION: "13"
         "EXCLUDED_SOURCE_FILE_NAMES[config=Release]": "ui-preview.mp4"
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist

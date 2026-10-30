@@ -7,9 +7,10 @@
 - 私有 GitHub 仓库：[hi-craft/localframe-player](https://github.com/hi-craft/localframe-player)。应用名 Vela Player，工程名 LocalFrame。
 - 用户确认 iPhone 已安装 **0.2.0 / build 3**；实际反馈为单击无法唤起操作区、退出全屏后方向未恢复。不要再询问是否已安装该版本。
 - 用户现使用 MacBook，已明确要求本地模拟器验证，覆盖此前“跳过模拟器”的偏好。
-- 当前开发版 **0.2.1 / build 12**，基于 `79d8d3cf61aa3f234cf218faa3e01cfa8865d382`；用户明确授权开发分支 **`fix/vela-controls-library`**，并要求提交代码及上传产物。代码以本分支提交为准，安装包、校验文件和验证资料对应 Release 标签 `v0.2.1-build12`；实际验证结果见 [VALIDATION.md](VALIDATION.md)。
+- 当前开发版 **0.2.1 / build 13**，基于 `79d8d3cf61aa3f234cf218faa3e01cfa8865d382`；用户明确授权开发分支 **`fix/vela-controls-library`**，并要求提交代码及上传产物。代码以本分支提交为准。build 13 包含大库缓存修复和关闭音频会话的后台释放；历史 Release 标签 `v0.2.1-build12` 不包含这两项修复。实际验证结果见 [VALIDATION.md](VALIDATION.md)。
 - 已在手机 Vela Player 的 Documents 中构造 `Vela测试视频_三层_20261029`：15 个内容不同、每个约 15 秒的视频，三级目录、各层不同数量，包含横屏和竖屏；已核对手机回读散列。该素材不放进仓库或安装包。
 - build 12 IPA 已传到手机 Vela Player 的 Documents，手机回读与原包大小和 SHA-256 一致；传输前实际观察到已安装版本为 **0.2.1 / build 11**。build 12 仍需 SideStore 签名后安装，文件传输不代表已更新或真机验收完成。设备标识与配对资料不进入仓库或发布附件。
+- 2026-10-30 已将 build 13 IPA 传到手机同一 Documents 目录并回读核对；本次读取到手机已安装 **0.2.1 / build 12**，build 13 尚需用户通过 SideStore 签名安装。不要把传输当作安装完成。
 
 ## 本轮需求与实现范围
 
