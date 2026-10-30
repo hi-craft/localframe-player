@@ -27,6 +27,8 @@
     .download { margin: 29px 0 14px; }
     .button { min-height: 54px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 5px; background: #e50914; color: white; text-decoration: none; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
     .button:hover { background: #fa1824; }
+    .button.secondary { margin-top: 12px; color: #ddd; background: #202020; border: 1px solid #393939; }
+    .button.secondary:hover { background: #303030; }
     .button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
     .button svg { width: 20px; height: 20px; }
     .note { margin: 0; color: #999; font-size: 12px; line-height: 1.8; }
@@ -57,26 +59,29 @@
   <div class="icon" aria-hidden="true"><svg viewBox="0 0 50 54" fill="none"><path d="M2 3h13l10 33L35 3h13L31 51H19L2 3Z" fill="#E50914"/></svg></div>
   <p class="eyebrow">VELA PLAYER · 本地视频播放器</p>
   <h1>你的片库，<span>随身的影院。</span></h1>
-  <p class="intro">在 iPhone 和 iPad 上播放本地与外接存储中的视频。这一版加入诊断日志，帮助定位播放结束后的卡顿。</p>
-  <div class="metadata"><span class="badge">诊断版</span><span>0.2.1 · build 14</span><span>51.5 MB</span><span>iOS 17+</span></div>
-  <div class="download"><a id="download" class="button" href="https://github.com/hi-craft/localframe-player/releases/download/v0.2.1-build14/VelaPlayer-0.2.1-build14-unsigned.ipa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>下载日志版 IPA</a></div>
-  <p class="note">请在 Safari 中打开。下载来自私有 GitHub 仓库，需要先登录有访问权限的账号。遇到 404 时，<a href="https://github.com/hi-craft/localframe-player/releases/tag/v0.2.1-build14">打开版本页面</a>后再下载。</p>
-  <div class="notice"><strong>当前版本通过 SideStore 安装</strong><p>这个安装包尚未签名，需要下载后交给 SideStore 签名。Safari 直接安装尚未开放，不能把下载成功当作安装完成。</p></div>
+  <p class="intro">在 iPhone 和 iPad 上播放本地与外接存储中的视频。这一版调整片尾关闭时的解码器清理流程，并保留诊断日志，便于验证外接存储的播放体验。</p>
+  <div class="metadata"><span class="badge">诊断版</span><span>0.2.1 · build 15</span><span>51.5 MB</span><span>iOS 17+</span></div>
+  <div class="download">
+    <a id="install" class="button" href="sidestore://install?url=https%3A%2F%2Fgithub.com%2Fhi-craft%2Flocalframe-player%2Freleases%2Fdownload%2Fv0.2.1-build15%2FVelaPlayer-0.2.1-build15-unsigned.ipa">用 SideStore 安装</a>
+    <a id="download" class="button secondary" href="https://github.com/hi-craft/localframe-player/releases/download/v0.2.1-build15/VelaPlayer-0.2.1-build15-unsigned.ipa">下载 IPA 文件</a>
+  </div>
+  <p class="note">在 iPhone Safari 中打开。安装按钮会唤起已配置好的 SideStore；下载来自公开 GitHub 仓库，无需登录。也可<a href="https://github.com/hi-craft/localframe-player/releases/tag/v0.2.1-build15">打开版本页面</a>获取文件。</p>
+  <div class="notice"><strong>使用你的 Apple 账号签名安装</strong><p>请先完成 SideStore 配置并保持其所需连接。这个 IPA 尚未签名，点击安装后由 SideStore 下载、签名和安装；安装结果以 SideStore 的提示为准。</p></div>
   <section aria-labelledby="install-heading">
     <h2 id="install-heading">在手机上安装</h2>
     <ol>
-      <li><div><strong>下载到「文件」</strong><p>点击上方按钮，确认下载。完成后可在 Safari 下载列表，或「文件」App 的下载项中找到 IPA。</p></div></li>
-      <li><div><strong>使用 SideStore 导入</strong><p>打开已经配置好的 SideStore，进入 My Apps，点击 +，选择刚下载的 IPA。使用原来给 Vela 签名的 Apple 账号完成更新。</p></div></li>
-      <li><div><strong>确认 build 14</strong><p>安装完成后打开 Vela，在设置中确认版本为 0.2.1 / build 14。手机上的签名与安装结果以 SideStore 的提示为准。</p></div></li>
+      <li><div><strong>点击「用 SideStore 安装」</strong><p>允许 Safari 打开 SideStore，按提示下载并使用原来给 Vela 签名的 Apple 账号更新。</p></div></li>
+      <li><div><strong>需要时手动导入 IPA</strong><p>若安装按钮没有响应，点击「下载 IPA 文件」。下载完成后，在 SideStore 的 My Apps 中点击 +，从「文件」选择 IPA。</p></div></li>
+      <li><div><strong>确认 build 15</strong><p>安装完成后打开 Vela，在设置中确认版本为 0.2.1 / build 15。手机上的签名与安装结果以 SideStore 的提示为准。</p></div></li>
     </ol>
     <a class="text-link note" href="https://docs.sidestore.io/docs/installation/install">SideStore 官方安装指南 ↗</a>
   </section>
   <section aria-labelledby="diagnostics-heading">
     <h2 id="diagnostics-heading">复现后，把日志发回来</h2>
     <p class="log-description">进入 <b>设置 → 诊断日志</b>，先添加复现标记。出现整 App 卡顿时，等待 <b>5–10 秒</b>再强退重开，然后导出日志。请一并说明发生时间，以及是否使用外接 USB 存储。日志保留在本机，不包含视频内容、文件名或完整路径。</p>
-    <details><summary>文件完整性 · SHA-256</summary><code>a238cbff2726040405260f4ca21f36d19624012b9c72f8e1bfb63e5249a86721</code></details>
+    <details><summary>文件完整性 · SHA-256</summary><code>1df795477a38ccb78da91a1facc28cd476b358f60c09051bfba03eac16b3f04b</code></details>
   </section>
-  <footer><span>Vela Player</span><a href="https://github.com/hi-craft/localframe-player/releases/tag/v0.2.1-build14">版本与下载</a><a href="https://support.apple.com/en-gb/guide/deployment/depce7cefc4d/1/web">关于网页安装</a></footer>
+  <footer><span>Vela Player</span><a href="https://github.com/hi-craft/localframe-player/releases/tag/v0.2.1-build15">版本与下载</a><a href="https://docs.sidestore.io/docs/advanced/url-schema">SideStore 安装链接说明</a></footer>
 </main>
 </body>
 </html>
