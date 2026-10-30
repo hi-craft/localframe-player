@@ -19,6 +19,9 @@ targets:
     platform: iOS
     sources:
       - path: App
+      - path: UITests/Fixtures/ui-preview.mp4
+        optional: true
+        buildPhase: resources
     dependencies:
       - package: LocalLibraryCore
       - framework: Vendor/MobileVLCKit.xcframework
@@ -42,8 +45,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.localframe.player
         PRODUCT_NAME: LocalFrame
-        MARKETING_VERSION: "0.2.0"
-        CURRENT_PROJECT_VERSION: "3"
+        MARKETING_VERSION: "0.2.1"
+        CURRENT_PROJECT_VERSION: "13"
+        "EXCLUDED_SOURCE_FILE_NAMES[config=Release]": "ui-preview.mp4"
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
         SWIFT_OBJC_BRIDGING_HEADER: App/Bridge/LocalFrame-Bridging-Header.h
@@ -56,6 +60,7 @@ targets:
       gatherCoverageData: false
       testTargets:
         - LocalFrameTests
+        - LocalFrameUITests
   LocalFrameTests:
     type: bundle.unit-test
     platform: iOS
@@ -68,3 +73,15 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.localframe.player.tests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_OBJC_BRIDGING_HEADER: App/Bridge/LocalFrame-Bridging-Header.h
+  LocalFrameUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+        excludes: [Fixtures]
+    dependencies:
+      - target: LocalFrame
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.localframe.player.uitests
+        GENERATE_INFOPLIST_FILE: YES

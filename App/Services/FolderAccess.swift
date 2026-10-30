@@ -61,9 +61,9 @@ actor LibraryDiskStore {
     private var latestRevision = -1
     private let url: URL
 
-    init() {
+    init(url overrideURL: URL? = nil) {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        url = base.appendingPathComponent("LocalFrame/library-v1.json")
+        url = overrideURL ?? base.appendingPathComponent("LocalFrame/library-v1.json")
     }
 
     func load() throws -> LibrarySnapshot {

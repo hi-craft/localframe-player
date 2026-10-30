@@ -4,6 +4,13 @@ public struct DirectoryScan: Sendable {
     public var videos: [VideoItem]
     public var unreadableCount: Int
     public var excludedCloudCount: Int
+    public var inspectedItemCount: Int
+}
+
+public struct DirectoryScanProgress: Sendable {
+    public let inspectedItemCount: Int
+    public let videoCount: Int
+    public let relativeDirectory: String
 }
 
 public enum DirectoryScanner {
@@ -14,7 +21,8 @@ public enum DirectoryScanner {
 
     /// Enumerates metadata only. Does not parse videos or request cloud downloads.
     public static func scan(sourceID: UUID, root: URL,
-                            isCancelled: @escaping () -> Bool = { false }) throws -> DirectoryScan {
+                            isCancelled: @escaping () -> Bool = { false },
+                            onProgress: (DirectoryScanProgress) -> Void = { _ in }) throws -> DirectoryScan {
         if isCancelled() { throw CancellationError() }
         guard root.isFileURL else { throw LibraryFailure.remoteSource }
         let rootValues = try root.resourceValues(forKeys: [.isDirectoryKey, .isUbiquitousItemKey, .volumeIsLocalKey])
@@ -30,6 +38,17 @@ public enum DirectoryScanner {
         var items: [VideoItem] = []
         var pending = [base]
         var visited: Set<String> = []
+        var inspected = 0
+        var lastReport = -Double.infinity
+        func report(_ directory: URL, force: Bool = false) {
+            let now = Date.timeIntervalSinceReferenceDate
+            guard force || now - lastReport >= 0.1 else { return }
+            lastReport = now
+            let path = LocalMediaPath.directoryPath(directory)
+            onProgress(DirectoryScanProgress(inspectedItemCount: inspected, videoCount: items.count,
+                relativeDirectory: path == basePath ? "" : String(path.dropFirst(prefix.count))))
+        }
+        report(base, force: true)
         while let directory = pending.popLast() {
             if isCancelled() { throw CancellationError() }
             let directoryPath = LocalMediaPath.directoryPath(directory)
@@ -46,6 +65,8 @@ public enum DirectoryScanner {
             }
             for file in children {
                 if isCancelled() { throw CancellationError() }
+                inspected += 1
+                defer { report(directory) }
                 do {
                     let values = try file.resourceValues(forKeys: keys)
                     guard values.isSymbolicLink != true else { continue }
@@ -65,7 +86,9 @@ public enum DirectoryScanner {
         if isCancelled() { throw CancellationError() }
         // An unplugged device must never turn a cached library into an empty successful scan.
         guard FileManager.default.fileExists(atPath: root.path) else { throw LibraryFailure.unavailable }
-        return DirectoryScan(videos: items, unreadableCount: failures, excludedCloudCount: cloudFiles)
+        report(base, force: true)
+        return DirectoryScan(videos: items, unreadableCount: failures, excludedCloudCount: cloudFiles,
+                             inspectedItemCount: inspected)
     }
 }
 

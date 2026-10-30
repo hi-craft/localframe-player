@@ -13,8 +13,9 @@ actor ThumbnailDiskCache {
             .appendingPathComponent("LocalFrame/Thumbnails", isDirectory: true)
     }
 
-    nonisolated static func key(for item: VideoItem) -> String {
-        SHA256.hash(data: Data(item.cacheIdentity.utf8)).map { String(format: "%02x", $0) }.joined()
+    nonisolated static func key(for item: VideoItem, featured: Bool = false) -> String {
+        let identity = item.cacheIdentity + (featured ? ":featured-960x540" : "")
+        return SHA256.hash(data: Data(identity.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private func prepare() throws {

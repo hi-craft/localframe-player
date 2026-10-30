@@ -20,6 +20,7 @@
 @property (nonatomic) unsigned width;
 @property (nonatomic) unsigned height;
 @property (nonatomic) unsigned pitch;
+@property (nonatomic) CGSize maximumSize;
 @property (nonatomic) unsigned capturedWidth;
 @property (nonatomic) unsigned capturedHeight;
 @property (nonatomic) unsigned capturedPitch;
@@ -41,7 +42,7 @@ static unsigned LPSetup(void **opaque, char *chroma, unsigned *width, unsigned *
                         unsigned *pitches, unsigned *lines) {
     LPFrameContext *context = (__bridge LPFrameContext *)(*opaque);
     if (*width == 0 || *height == 0) return 0;
-    double scale = fmin(1.0, fmin(320.0 / *width, 180.0 / *height));
+    double scale = fmin(1.0, fmin(context.maximumSize.width / *width, context.maximumSize.height / *height));
     unsigned w = MAX(1, (unsigned)floor(*width * scale));
     unsigned h = MAX(1, (unsigned)floor(*height * scale));
     unsigned pitch = (w * 4 + 31) & ~31U;
@@ -82,8 +83,17 @@ static void LPDisplay(void *opaque, void *picture) {}
 
 @implementation LPFirstFrameDecoder
 + (UIImage *)imageAtFileURL:(NSURL *)url cancellation:(LPFrameCancellation *)cancellation {
+    return [self imageAtFileURL:url cancellation:cancellation maximumSize:CGSizeMake(320, 180)];
+}
+
++ (UIImage *)imageAtFileURL:(NSURL *)url cancellation:(LPFrameCancellation *)cancellation maximumSize:(CGSize)maximumSize {
+    return [self imageAtFileURL:url seconds:0 cancellation:cancellation maximumSize:maximumSize];
+}
+
++ (UIImage *)imageAtFileURL:(NSURL *)url seconds:(double)seconds cancellation:(LPFrameCancellation *)cancellation maximumSize:(CGSize)maximumSize {
     NSAssert(!NSThread.isMainThread, @"Never decode thumbnails on the UI thread");
-    if (!url.isFileURL || cancellation.isCancelled) return nil;
+    if (!url.isFileURL || cancellation.isCancelled || !isfinite(seconds) || seconds < 0 || !isfinite(maximumSize.width) ||
+        !isfinite(maximumSize.height) || maximumSize.width <= 0 || maximumSize.height <= 0) return nil;
     @autoreleasepool {
         libvlc_instance_t *instance = (libvlc_instance_t *)LPLocalLibrary().instance;
         if (!instance) return nil;
@@ -94,10 +104,15 @@ static void LPDisplay(void *opaque, void *picture) {}
         for (unsigned i = 0; i < sizeof(options) / sizeof(options[0]); i++) {
             libvlc_media_add_option(media, options[i]);
         }
+        if (seconds > 0) {
+            NSString *start = [NSString stringWithFormat:@":start-time=%.3f", seconds];
+            libvlc_media_add_option(media, start.UTF8String);
+        }
         libvlc_media_player_t *player = libvlc_media_player_new_from_media(media);
         libvlc_media_release(media);
         if (!player) return nil;
         LPFrameContext *context = [LPFrameContext new];
+        context.maximumSize = CGSizeMake(fmin(960, maximumSize.width), fmin(540, maximumSize.height));
         libvlc_video_set_callbacks(player, LPLock, LPUnlock, LPDisplay, (__bridge void *)context);
         libvlc_video_set_format_callbacks(player, LPSetup, NULL);
         if (libvlc_media_player_play(player) == 0) {

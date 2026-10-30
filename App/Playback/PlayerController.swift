@@ -25,6 +25,8 @@ private struct PreparedVideo: @unchecked Sendable {
     @Published private(set) var isBusy = false
     @Published var isFullscreen = false
     @Published var showsPlaylist = false
+    @Published private(set) var controlsLocked = false
+    @Published private(set) var sleepDeadline: Date?
     let engine = LPPlaybackBridge()
     var isPlaying: Bool { status == .playing || status == .buffering }
     private let library: LibraryStore
@@ -33,6 +35,7 @@ private struct PreparedVideo: @unchecked Sendable {
     private var loadTask: Task<Void, Never>?
     private var availabilityTask: Task<Void, Never>?
     private var loadingTask: Task<Void, Never>?
+    private var sleepTask: Task<Void, Never>?
     private var activity = PlaybackActivity()
     private var requestID = UUID()
     private var engineLoaded = false
@@ -40,6 +43,8 @@ private struct PreparedVideo: @unchecked Sendable {
     private var wantsPlayback = false
     private var observers: [NSObjectProtocol] = []
     private var originalBrightness: CGFloat?
+    var currentSource: FolderSource? { current.flatMap { library.source(for: $0) } }
+    var currentSourceStatus: String { currentSource.flatMap { library.statuses[$0.id]?.description } ?? "目录不可读" }
 
     init(library: LibraryStore) {
         self.library = library
@@ -85,6 +90,7 @@ private struct PreparedVideo: @unchecked Sendable {
 
     func toggle() {
         guard current != nil else { return }
+        if expireSleepTimerIfNeeded() { return }
         if isPlaying || status == .opening { pause() }
         else if status == .ended || status == .failed || !engineLoaded { openCurrent() }
         else {
@@ -110,6 +116,44 @@ private struct PreparedVideo: @unchecked Sendable {
         engine.seek(seconds: target)
     }
 
+    func skip(by interval: Double) {
+        guard interval.isFinite else { return }
+        seek(to: seconds + interval)
+    }
+
+    func setControlsLocked(_ locked: Bool) {
+        controlsLocked = current != nil && locked
+    }
+
+    func setSleepTimer(after interval: TimeInterval) {
+        guard current != nil, interval.isFinite, interval > 0, interval <= 86400 else { return }
+        cancelSleepTimer()
+        sleepDeadline = Date().addingTimeInterval(interval)
+        sleepTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(interval)) } catch { return }
+            guard !Task.isCancelled else { return }
+            self?.finishSleepTimer()
+        }
+    }
+
+    func cancelSleepTimer() {
+        sleepTask?.cancel()
+        sleepTask = nil
+        sleepDeadline = nil
+    }
+
+    @discardableResult private func expireSleepTimerIfNeeded() -> Bool {
+        guard let sleepDeadline, sleepDeadline <= Date() else { return false }
+        finishSleepTimer()
+        return true
+    }
+
+    private func finishSleepTimer() {
+        cancelSleepTimer()
+        controlsLocked = false
+        pause()
+    }
+
     func setRate(_ value: Float) {
         rate = min(3, max(0.25, value))
         engine.setRate(rate)
@@ -122,13 +166,17 @@ private struct PreparedVideo: @unchecked Sendable {
 
     func setAppActive(_ active: Bool) {
         appActive = active
+        expireSleepTimerIfNeeded()
         if !active {
+            controlsLocked = false
             pause()
             restoreBrightness()
         }
     }
 
     func close() {
+        cancelSleepTimer()
+        controlsLocked = false
         requestID = UUID()
         loadTask?.cancel()
         availabilityTask?.cancel()
@@ -138,9 +186,8 @@ private struct PreparedVideo: @unchecked Sendable {
         lease = nil
         engineLoaded = false
         wantsPlayback = false
-        engine.stop {
+        engine.close {
             withExtendedLifetime(previousLease) {}
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
         current = nil
         currentURL = nil
@@ -216,6 +263,7 @@ private struct PreparedVideo: @unchecked Sendable {
     }
 
     private func fail(_ message: String, disconnected: Bool = false) {
+        controlsLocked = false
         wantsPlayback = false
         clearLoading()
         status = .failed
@@ -273,6 +321,7 @@ private struct PreparedVideo: @unchecked Sendable {
             clearLoading()
         case "paused": status = .paused; clearLoading()
         case "ended":
+            if expireSleepTimerIfNeeded() { return }
             status = .ended
             clearLoading()
             availabilityTask?.cancel()

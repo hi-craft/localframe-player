@@ -73,11 +73,14 @@ public struct LibrarySnapshot: Codable, Sendable {
     public var schemaVersion: Int
     public var sources: [FolderSource]
     public var videos: [VideoItem]
+    /// Also records successfully indexed empty roots. Missing on older snapshots.
+    public var indexedSourceIDs: [UUID]?
 
-    public init(sources: [FolderSource] = [], videos: [VideoItem] = []) {
+    public init(sources: [FolderSource] = [], videos: [VideoItem] = [], indexedSourceIDs: [UUID]? = nil) {
         schemaVersion = 1
         self.sources = sources
         self.videos = videos
+        self.indexedSourceIDs = indexedSourceIDs
     }
 }
 
