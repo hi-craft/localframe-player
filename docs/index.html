@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Vela Player iPhone 和 iPad 诊断版下载与安装。">
+  <title>下载 Vela Player</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #090909; color: #f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(ellipse at 50% -20%, #491016 0, transparent 54%), #090909; }
+    main { width: min(100% - 40px, 620px); margin: 0 auto; padding: max(34px, env(safe-area-inset-top)) 0 max(48px, env(safe-area-inset-bottom)); }
+    header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 48px; }
+    .brand { font-size: 25px; font-weight: 900; letter-spacing: 3px; color: #e50914; }
+    .platform { color: #aaa; font-size: 12px; }
+    .icon { width: 84px; height: 84px; display: grid; place-items: center; background: #151515; border: 1px solid #303030; border-radius: 20px; box-shadow: 0 18px 45px #0008; }
+    .icon svg { width: 50px; height: 54px; }
+    .eyebrow { margin: 28px 0 14px; color: #b0b0b0; font-size: 12px; letter-spacing: 2px; }
+    h1 { margin: 0; font-size: clamp(35px, 8.5vw, 52px); line-height: 1.12; font-weight: 800; letter-spacing: -1.5px; }
+    h1 span { display: block; margin-top: 7px; color: #8c8c8c; }
+    .intro { margin: 23px 0 24px; color: #b7b7b7; line-height: 1.8; font-size: 15px; max-width: 440px; }
+    .metadata { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #aaa; }
+    .badge { color: #f18a90; border: 1px solid #65232a; padding: 3px 7px; border-radius: 4px; }
+    .metadata span { display: inline-flex; align-items: center; }
+    .download { margin: 29px 0 14px; }
+    .button { min-height: 54px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 5px; background: #e50914; color: white; text-decoration: none; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .button:hover { background: #fa1824; }
+    .button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+    .button svg { width: 20px; height: 20px; }
+    .note { margin: 0; color: #999; font-size: 12px; line-height: 1.8; }
+    .note a, .text-link { color: #ddd; text-underline-offset: 4px; }
+    .notice { margin-top: 24px; padding: 17px 19px; background: #181114; border-left: 3px solid #b91c29; border-radius: 3px; }
+    .notice strong { display: block; font-size: 14px; margin-bottom: 6px; }
+    .notice p { margin: 0; font-size: 13px; line-height: 1.8; color: #bcaeb0; }
+    section { margin-top: 34px; border-top: 1px solid #292929; padding-top: 28px; }
+    h2 { margin: 0 0 22px; font-size: 20px; letter-spacing: -.4px; }
+    ol { padding: 0; margin: 0; list-style: none; counter-reset: steps; }
+    li { counter-increment: steps; display: grid; grid-template-columns: 28px 1fr; gap: 12px; margin-bottom: 22px; }
+    li::before { content: counter(steps); color: #777; font-size: 22px; font-weight: 700; line-height: 1.3; }
+    li strong { font-size: 14px; }
+    li p { margin: 6px 0 0; font-size: 13px; color: #aaa; line-height: 1.85; }
+    .log-description { font-size: 13px; color: #aaa; line-height: 1.85; margin: 0; }
+    .log-description b { color: #ddd; font-weight: 600; }
+    details { margin-top: 25px; font-size: 12px; color: #999; }
+    summary { cursor: pointer; padding: 6px 0; }
+    code { display: block; word-break: break-all; margin-top: 12px; padding: 14px; background: #151515; line-height: 1.7; color: #bbb; }
+    footer { margin-top: 38px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: #666; }
+    footer a { color: #999; text-decoration: none; }
+    @media (min-width: 620px) { main { padding-top: 45px; } header { padding-bottom: 60px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header><div class="brand">VELA</div><span class="platform">iPhone / iPad</span></header>
+  <div class="icon" aria-hidden="true"><svg viewBox="0 0 50 54" fill="none"><path d="M2 3h13l10 33L35 3h13L31 51H19L2 3Z" fill="#E50914"/></svg></div>
+  <p class="eyebrow">VELA PLAYER · 本地视频播放器</p>
+  <h1>你的片库，<span>随身的影院。</span></h1>
+  <p class="intro">在 iPhone 和 iPad 上播放本地与外接存储中的视频。这一版加入诊断日志，帮助定位播放结束后的卡顿。</p>
+  <div class="metadata"><span class="badge">诊断版</span><span>0.2.1 · build 14</span><span>51.5 MB</span><span>iOS 17+</span></div>
+  <div class="download"><a id="download" class="button" href="https://github.com/hi-craft/localframe-player/releases/download/v0.2.1-build14/VelaPlayer-0.2.1-build14-unsigned.ipa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>下载日志版 IPA</a></div>
+  <p class="note">请在 Safari 中打开。下载来自私有 GitHub 仓库，需要先登录有访问权限的账号。遇到 404 时，<a href="https://github.com/hi-craft/localframe-player/releases/tag/v0.2.1-build14">打开版本页面</a>后再下载。</p>
+  <div class="notice"><strong>当前版本通过 SideStore 安装</strong><p>这个安装包尚未签名，需要下载后交给 SideStore 签名。Safari 直接安装尚未开放，不能把下载成功当作安装完成。</p></div>
+  <section aria-labelledby="install-heading">
+    <h2 id="install-heading">在手机上安装</h2>
+    <ol>
+      <li><div><strong>下载到「文件」</strong><p>点击上方按钮，确认下载。完成后可在 Safari 下载列表，或「文件」App 的下载项中找到 IPA。</p></div></li>
+      <li><div><strong>使用 SideStore 导入</strong><p>打开已经配置好的 SideStore，进入 My Apps，点击 +，选择刚下载的 IPA。使用原来给 Vela 签名的 Apple 账号完成更新。</p></div></li>
+      <li><div><strong>确认 build 14</strong><p>安装完成后打开 Vela，在设置中确认版本为 0.2.1 / build 14。手机上的签名与安装结果以 SideStore 的提示为准。</p></div></li>
+    </ol>
+    <a class="text-link note" href="https://docs.sidestore.io/docs/installation/install">SideStore 官方安装指南 ↗</a>
+  </section>
+  <section aria-labelledby="diagnostics-heading">
+    <h2 id="diagnostics-heading">复现后，把日志发回来</h2>
+    <p class="log-description">进入 <b>设置 → 诊断日志</b>，先添加复现标记。出现整 App 卡顿时，等待 <b>5–10 秒</b>再强退重开，然后导出日志。请一并说明发生时间，以及是否使用外接 USB 存储。日志保留在本机，不包含视频内容、文件名或完整路径。</p>
+    <details><summary>文件完整性 · SHA-256</summary><code>a238cbff2726040405260f4ca21f36d19624012b9c72f8e1bfb63e5249a86721</code></details>
+  </section>
+  <footer><span>Vela Player</span><a href="https://github.com/hi-craft/localframe-player/releases/tag/v0.2.1-build14">版本与下载</a><a href="https://support.apple.com/en-gb/guide/deployment/depce7cefc4d/1/web">关于网页安装</a></footer>
+</main>
+</body>
+</html>
